@@ -36,4 +36,26 @@ func Test_add_sub_item(t *testing.T) {
 		t.Log("Push ok", lLst2.String())
 	}
 
+	t.Log("add_sub_item successfull", lLst.String())
+}
+
+func Test_has(t *testing.T) {
+	Lst := NewStringList("sdfa")
+	if Lst.Len() == 1 {
+		t.Log("Create ok", Lst.String())
+	}
+	Item0 := NewStringList(`"res_partner" as "res_user__partner_id"`)
+	Item1 := NewStringList("Item1")
+	Lst.Push(Item0)
+	Lst.Push(Item1)
+
+	if !Lst.Has(`"res_partner" as "res_user__partner_id"`) {
+		t.Log("Has failure string", Lst.String())
+	}
+
+	if !Lst.Has(Item1) {
+		t.Log("Has failure object", Lst.String())
+	}
+
+	t.Log("Has successfull", Lst.String())
 }

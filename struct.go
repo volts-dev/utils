@@ -14,7 +14,7 @@ var (
 	// DefaultTagName is the default tag name for struct fields which provides
 	// a more granular to tweak certain structs. Lookup the necessary functions
 	// for more info.
-	DefaultTagName = "structs" // struct's field default tag name
+	DefaultTagName = "field" // struct's field default tag name
 )
 
 // Field represents a single struct field that encapsulates high level
@@ -32,6 +32,7 @@ type (
 		raw     interface{}
 		value   reflect.Value
 		TagName string
+		IsFlat  bool
 	}
 )
 
@@ -176,7 +177,7 @@ func (f *Field) FieldOk(name string) (*Field, bool) {
 
 // New returns a new *Struct with the struct s. It panics if the s's kind is
 // not struct.
-func New(s interface{}) *Struct {
+func NewStructMapper(s interface{}) *Struct {
 	return &Struct{
 		raw:     s,
 		value:   strctVal(s),
@@ -218,49 +219,63 @@ func New(s interface{}) *Struct {
 //
 // Note that only exported fields of a struct can be accessed, non exported
 // fields will be neglected.
-func (s *Struct) Map() map[string]interface{} {
-	out := make(map[string]interface{})
+func (s *Struct) Map(in ...map[string]interface{}) (out map[string]interface{}) {
+	if len(in) > 0 {
+		out = in[0]
+	} else {
+		out = make(map[string]interface{})
+	}
 
 	fields := s.structFields()
-	fmt.Println("Map:", len(fields), fields)
+	//fmt.Println("Map:", len(fields), fields)
 	for _, field := range fields {
 		name := field.Name
 		val := s.value.FieldByName(name)
 
 		var finalVal interface{}
-
-		tagName, tagOpts := parseTag(field.Tag.Get(s.TagName))
-		if tagName != "" {
-			name = tagName
-		}
+		//tag := field.Tag.Get(s.TagName)
+		//fmt.Println("Map:", name, s.TagName, tag)
+		//tagName, tagOpts := parseTag(tag)
+		//if tagName != "" {
+		//	name = tagName
+		//}
 
 		// if the value is a zero value and the field is marked as omitempty do
 		// not include
-		if tagOpts.Has("omitempty") {
+		/*if tagOpts.Has("omitempty") {
 			zero := reflect.Zero(val.Type()).Interface()
 			current := val.Interface()
 
 			if reflect.DeepEqual(current, zero) {
 				continue
 			}
-		}
+		}*/
 
-		if IsStruct(val.Interface()) && !tagOpts.Has("omitnested") {
-			// look out for embedded structs, and convert them to a
-			// map[string]interface{} too
-			n := New(val.Interface())
+		if IsStruct(val.Interface()) /* && !tagOpts.Has("omitnested") */ {
+			n := NewStructMapper(val.Interface())
 			n.TagName = s.TagName
-			m := n.Map()
-			if len(m) == 0 {
-				finalVal = val.Interface()
+			if s.IsFlat {
+				n.Map(out) //# 平坦添加
+
+				continue
 			} else {
-				finalVal = m
+				// look out for embedded structs, and convert them to a
+				// map[string]interface{} too
+
+				m := n.Map()
+				if len(m) == 0 {
+					finalVal = val.Interface()
+				} else {
+					finalVal = m
+				}
+
+				out[SnakeCasedName(name)] = finalVal
 			}
 		} else {
 			finalVal = val.Interface()
+			out[SnakeCasedName(name)] = finalVal
 		}
 
-		out[SnakeCasedName(name)] = finalVal
 	}
 
 	return out
@@ -554,37 +569,43 @@ func strctVal(s interface{}) reflect.Value {
 // Map converts the given struct to a map[string]interface{}. For more info
 // refer to Struct types Map() method. It panics if s's kind is not struct.
 func Map(s interface{}) map[string]interface{} {
-	return New(s).Map()
+	return NewStructMapper(s).Map()
+}
+
+func Struct2flatMap(s interface{}) map[string]interface{} {
+	n := NewStructMapper(s)
+	n.IsFlat = true
+	return n.Map()
 }
 
 // Values converts the given struct to a []interface{}. For more info refer to
 // Struct types Values() method.  It panics if s's kind is not struct.
 func Values(s interface{}) []interface{} {
-	return New(s).Values()
+	return NewStructMapper(s).Values()
 }
 
 // Fields returns a slice of *Field. For more info refer to Struct types
 // Fields() method.  It panics if s's kind is not struct.
 func Fields(s interface{}) []*Field {
-	return New(s).Fields()
+	return NewStructMapper(s).Fields()
 }
 
 // Names returns a slice of field names. For more info refer to Struct types
 // Names() method.  It panics if s's kind is not struct.
 func Names(s interface{}) []string {
-	return New(s).Names()
+	return NewStructMapper(s).Names()
 }
 
 // IsZero returns true if all fields is equal to a zero value. For more info
 // refer to Struct types IsZero() method.  It panics if s's kind is not struct.
 func IsZero(s interface{}) bool {
-	return New(s).IsZero()
+	return NewStructMapper(s).IsZero()
 }
 
 // HasZero returns true if any field is equal to a zero value. For more info
 // refer to Struct types HasZero() method.  It panics if s's kind is not struct.
 func HasZero(s interface{}) bool {
-	return New(s).HasZero()
+	return NewStructMapper(s).HasZero()
 }
 
 // IsStruct returns true if the given variable is a struct or a pointer to
@@ -606,5 +627,5 @@ func IsStruct(s interface{}) bool {
 // Name returns the structs's type name within its package. It returns an
 // empty string for unnamed types. It panics if s's kind is not struct.
 func Name(s interface{}) string {
-	return New(s).Name()
+	return NewStructMapper(s).Name()
 }

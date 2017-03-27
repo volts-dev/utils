@@ -5,7 +5,6 @@ import (
 	"strconv"
 	"strings"
 	"unicode"
-	//	wu "webgo/utils"
 )
 
 const (
@@ -274,6 +273,7 @@ func (self *TStringParser) _parselist(list *TStringList) error {
 		lPos  int = 0
 		lStr  string
 		lVals []string
+		char  string
 	)
 
 	//utils.Dbg("begin for")
@@ -284,8 +284,9 @@ func (self *TStringParser) _parselist(list *TStringList) error {
 		self.lexer.consume_whitespace()
 
 		//utils.Dbg("switch", string(self.lexer.char))
-		switch string(self.lexer.char) {
-		case "(": //('active', '=', True)
+		char = string(self.lexer.char)
+		switch char {
+		case "(", "[": //('active', '=', True)
 			{
 				// 新建链
 				lLst := &TStringList{startPos: self.lexer.pos}
@@ -312,29 +313,6 @@ func (self *TStringParser) _parselist(list *TStringList) error {
 						utils.Dbg("(", string(self.lexer.char), lStr)
 				*/
 				//self.lexer.backup()
-				err := self._parselist(lLst)
-				if err != nil {
-
-				}
-				//}
-				lLst.endPos = self.lexer.pos + 1
-				lLst.text = self.lexer.stream[lLst.startPos:lLst.endPos]
-				//utils.Dbg("()list ( text", lLst.text)
-				list.items = append(list.items, lLst)
-
-				//goto exit // NOTE:末尾不能直接跳出，有可能有下一个Listt要执行
-			}
-		case "[": //['&', ('active', '=', True), ('value', '!=', 'foo')]
-			{
-				// 新建链
-				lLst := &TStringList{startPos: self.lexer.pos}
-
-				self.lexer.consume_whitespace()
-				self.lexer.next()
-				if self.lexer.isEof {
-					goto exit
-				}
-
 				if isAlphaNumeric(rune(self.lexer.char)) { // [1,2,3]
 					self.lexer.backup()
 					lStr = self.lexer.scan_string("]")
@@ -382,24 +360,91 @@ func (self *TStringParser) _parselist(list *TStringList) error {
 					//lStr = self.lexer.scan_string("]")
 					//utils.Dbg("list rnd", lLst.text)
 				}
-
-				// 读写字符串传
+				//}
 				lLst.endPos = self.lexer.pos + 1
 				lLst.text = self.lexer.stream[lLst.startPos:lLst.endPos]
-				//utils.Dbg("[]list text", lLst.text)
-
-				// 插入
+				//fmt.Println("()list ( text", lLst.text)
 				list.items = append(list.items, lLst)
 
 				//goto exit // NOTE:末尾不能直接跳出，有可能有下一个Listt要执行
 			}
+			/*
+				case "[": //['&', ('active', '=', True), ('value', '!=', 'foo')]
+					{
+						// 新建链
+						lLst := &TStringList{startPos: self.lexer.pos}
 
-		case "'":
+						self.lexer.consume_whitespace()
+						self.lexer.next()
+						if self.lexer.isEof {
+							goto exit
+						}
+
+						if isAlphaNumeric(rune(self.lexer.char)) { // [1,2,3]
+							self.lexer.backup()
+							lStr = self.lexer.scan_string("]")
+							if self.lexer.isEof {
+								goto exit
+							}
+
+							//utils.Dbg("New val ", string(self.lexer.char), lStr)
+
+							lVals = strings.Split(lStr, ",")
+							for _, val := range lVals {
+								lLst.items = append(lLst.items, &TStringList{text: val})
+							}
+
+							// 读写字符串传
+							lLst.endPos = self.lexer.pos + 1
+							lLst.text = self.lexer.stream[lLst.startPos:lLst.endPos]
+							//utils.Dbg("list text", lLst.text)
+
+							// 插入
+							list.items = append(list.items, lLst)
+
+							// 继续处理后面的")"  ...[42, 666])
+							self.lexer.consume_whitespace()
+							self.lexer.next()
+							if self.lexer.isEof {
+								goto exit
+							}
+
+							if self.lexer.char == ')' || self.lexer.char == ']' {
+								goto exit // 列表末端 跳出
+								break
+							} else {
+								self.lexer.backup() // 回滚 继续
+							}
+						} else { // ['&', (
+							//utils.Dbg("[ into parselist", string(self.lexer.char), lStr)
+							err := self._parselist(lLst)
+							if err != nil {
+
+							}
+
+							//self.lexer.consume_whitespace()
+							//self.lexer.next()
+							//lStr = self.lexer.scan_string("]")
+							//utils.Dbg("list rnd", lLst.text)
+						}
+
+						// 读写字符串传
+						lLst.endPos = self.lexer.pos + 1
+						lLst.text = self.lexer.stream[lLst.startPos:lLst.endPos]
+						//utils.Dbg("[]list text", lLst.text)
+
+						// 插入
+						list.items = append(list.items, lLst)
+
+						//goto exit // NOTE:末尾不能直接跳出，有可能有下一个Listt要执行
+					}
+			*/
+		case "'", `"`:
 			{
 
 				//获取另一个引号 ('xx's', 可能字符有"’" 所以必须遇见","
 				for {
-					lStr = self.lexer.scan_string("'")
+					lStr = self.lexer.scan_string(char)
 					if self.lexer.isEof {
 						goto exit
 					}
@@ -727,25 +772,47 @@ func (self *TStringList) In(strs ...interface{}) bool {
 	return false
 }
 
+// find by string or object
+func (self *TStringList) Find(itr interface{}) *TStringList {
+	for _, itm := range self.items {
+		if itm.IsList() {
+			return itm.Find(itr)
+		} else if str, ok := itr.(string); ok {
+			if itm.text == str {
+				return itm
+			}
+		} else if item, ok := itr.(*TStringList); ok {
+			if itm.text == item.text {
+				return itm
+			}
+		}
+	}
+
+	return nil
+}
+
 //检查是否包含 一个或者多个内容
 func (self *TStringList) Has(strs ...interface{}) bool {
 	for _, itr := range strs {
-		// 处理字符串
-		if str, ok := itr.(string); ok {
-			if strings.Index(self.text, str) == -1 {
-				return false // 如果一个查不到就返回否
-			}
-		} else
-		// 处理*TStringList 类型
-		if item, ok := itr.(*TStringList); ok {
-			if strings.Index(self.text, item.text) == -1 {
-				return false
-			}
+		if self.Find(itr) != nil {
+			return true
 		}
-
+		/*
+			// 处理字符串
+			if str, ok := itr.(string); ok {
+				if strings.Index(self.String(), str) == -1 {
+					return false // 如果一个查不到就返回否
+				}
+			} else if item, ok := itr.(*TStringList); ok {
+				// 处理*TStringList 类型
+				if strings.Index(self.String(), item.text) == -1 {
+					return false
+				}
+			}
+		*/
 	}
 
-	return true
+	return false
 }
 
 // ('xx','xx')
