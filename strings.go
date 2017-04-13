@@ -93,6 +93,14 @@ func DotCasedName(name string) string {
 
 // convert like this: "hello_world" to "HelloWorld"
 func TitleCasedName(name string) string {
+	return _titleCasedName(name, false)
+}
+
+// convert like this: "hello_world" to "HelloWorld"
+func TitleCasedNameWithSpace(name string) string {
+	return _titleCasedName(name, true)
+}
+func _titleCasedName(name string, sapce bool) string {
 	newstr := make([]rune, 0)
 	upNextChar := true
 
@@ -103,6 +111,9 @@ func TitleCasedName(name string) string {
 			chr -= ('a' - 'A')
 		case chr == '_':
 			upNextChar = true
+			if sapce {
+				newstr = append(newstr, ' ')
+			}
 			continue
 		}
 
