@@ -6,6 +6,22 @@ import (
 	"testing"
 )
 
+func TestParser(t *testing.T) {
+	one := NewStringList()
+	one.PushString("a")
+	one.PushString("in")
+	one.AddSubList([]string{"1", "2", "3"}...)
+
+	fmt.Println("result1", one.String())
+
+	one = NewStringList()
+	one.PushString("a")
+	one.PushString("=")
+	one.AddSubList("true")
+
+	fmt.Println("result1", one.String())
+}
+
 func Test_add_sub_item(t *testing.T) {
 	lLst := NewStringList("sdfa")
 	if lLst.Len() == 1 {

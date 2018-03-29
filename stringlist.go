@@ -1,81 +1,62 @@
 package utils
 
 import (
-	"errors"
+	"fmt"
+	//	"errors"
 	"strconv"
-	"strings"
-	"unicode"
-)
-
-const (
-	// Domain operators.
-	NOT_OPERATOR = "!"
-	OR_OPERATOR  = "|"
-	AND_OPERATOR = "&"
-
-	TRUE_LEAF  = "(1, '=', 1)"
-	FALSE_LEAF = "(0, '=', 1)"
-
-	TRUE_DOMAIN  = "[" + TRUE_LEAF + "]"
-	FALSE_DOMAIN = "[" + FALSE_LEAF + "]"
-)
-
-var (
-	DOMAIN_OPERATORS = []string{NOT_OPERATOR, OR_OPERATOR, AND_OPERATOR}
-
-	/*# List of available term operators. It is also possible to use the '<>'
-	# operator, which is strictly the same as '!='; the later should be prefered
-	# for consistency. This list doesn't contain '<>' as it is simpified to '!='
-	# by the normalize_operator() function (so later part of the code deals with
-	# only one representation).
-	# Internals (i.e. not available to the user) 'inselect' and 'not inselect'
-	# operators are also used. In this case its right operand has the form (subselect, params).
-	*/
-	TERM_OPERATORS = []string{"=", "!=", "<=", "<", ">", ">=", "=?", "=like", "=ilike",
-		"like", "not like", "ilike", "not ilike", "in", "not in", "child_of"}
+	//	"strings"
+	//	"unicode"
 )
 
 type (
-
-	// lexer提供数据的扫描工作
-	TLexer struct {
-		length int
-		stream string //即将被扫描的文件流 一般放在执行扫描的类里
-		//leftdelim  string //开始的标志
-		//rightdelim string //结束的标志
-		pos int // 当前游标
-
-		curline int
-		char    byte
-		isEof   bool
-		/*
-			begin     int //从这里开始
-			end       int //结束的地方
-			offset    int // current position in the input.
-			ch        rune
-			width     int // width of last rune read from input.
-			insideTag bool
-		*/
-	}
-
-	// Parser 提供解析的逻辑 和数据的变换
-	TStringParser struct {
-		//templete *Parser
-		//parent   *Parser
-		lexer   *TLexer
-		strings *TStringList
+	IStringList interface {
+		AddSubList(strs ...string) IStringList
+		Clear()
+		Count() int
+		Clone(idx ...int) (result IStringList)
+		Find(itr interface{}) IStringList
+		Flatten() (result []string)
+		Has(strs ...interface{}) bool
+		In(strs ...interface{}) bool
+		Insert(idx int, item interface{})
+		IsBaseInt() bool
+		IsBaseString() bool
+		IsBool() bool
+		IsInt() bool
+		IsList() bool
+		Item(idx int) IStringList
+		Items(idx ...int) (result []IStringList)
+		Pop() (lst IStringList)
+		Push(item ...IStringList) IStringList
+		PushString(strs ...string) IStringList
+		Quote(str string) string
+		Remove(idx int) IStringList
+		Reversed() (result IStringList)
+		SetItem(idx int, item IStringList)
+		SetText(text string, idx ...int)
+		Shift() IStringList
+		String(idx ...int) string
+		Strings(idx ...int) (result []string)
+		Union(other IStringList)
+		Update()
 	}
 
 	TStringList struct {
-		text string
+		Text string
 		//type int // node, leaf
 		quoteChar        string
-		startPos, endPos int
+		StartPos, EndPos int
 		items            []*TStringList
 		updated          bool // -- 是否更新修改
+		format_func      func(node *TStringList)
 		//AutoUpdate       bool
 	}
 )
+
+/*
+func NewStringListParser(domain ...string) *TStringList {
+	return NewDomain(domain...)
+}
 
 // [""]
 func NewDomain(domain ...string) *TStringList {
@@ -101,18 +82,19 @@ func NewDomain(domain ...string) *TStringList {
 	}
 	return lParse.strings.Item(0)
 }
-
+*/
 // 创建一个StringList
 func NewStringList(strs ...string) (res_lst *TStringList) {
 	res_lst = &TStringList{
-		quoteChar: `'`,
-		updated:   true,
+		quoteChar:   `'`,
+		updated:     true,
+		format_func: _update,
 	}
 
 	lCnt := len(strs)
 	if lCnt > 0 {
 		if len(strs) == 1 {
-			res_lst.text = strs[0] // 创建空白
+			res_lst.Text = strs[0] // 创建空白
 		} else {
 			res_lst.PushString(strs...)
 		}
@@ -121,450 +103,41 @@ func NewStringList(strs ...string) (res_lst *TStringList) {
 	return
 }
 
-//主要-移动偏移
-//
-func (self *TLexer) next() byte {
-	if self.pos >= self.length-1 { //如果大于Buf 则停止
-		//selfl.width = 0
-		self.isEof = true
-		return 0
-	}
-	//utils.Dbg("next", self.pos, self.stream[self.pos])
-	// 直接返回第一个字符
-	if self.pos == 0 && self.char == 0 {
-		self.char = self.stream[self.pos]
-		//self.pos += 1
-		return self.char
-	}
-
-	self.pos += 1
-	self.char = self.stream[self.pos]
-	return self.char
-}
-
-func (self *TLexer) backup() {
-	if self.pos > 0 {
-		self.pos--
-	}
-	self.char = self.stream[self.pos]
-}
-
-//主要-略过特殊字符移动
-//保持上一个有效字符
-func (self *TLexer) consume_whitespace() {
-	lChar := self.char
-	for {
-		self.next()
-		if self.isEof {
-			break
-		}
-
-		//utils.Dbg("consume_whitespace", string(self.char))
-		if self.char == ' ' || self.char == '\t' || self.char == '\n' || self.char == '\r' {
-			continue
-		} else {
-			self.backup()
-			//utils.Dbg("consume_whitespace", string(self.char))
-			break
-			//return self.char
-		}
-	}
-
-	self.char = lChar
-	//utils.Dbg("consume_whitespace", string(self.char))
-}
-
-// 判断扫描 {{
-/*
-	循环匹配 {{ 直到找到完全匹配的
-*/
-
-func (self *TLexer) scan_string(s string) string { // s={{
-	var (
-		lStr string
-		//		lChar byte
-		pos int
-
-		//		match bool = true
-		//		err error
+func PrintStringList(list *TStringList) {
+	fmt.Printf(
+		"[Root]  Count:%d  Text:%v  IsList:%v ",
+		list.Count(),
+		list.String(),
+		list.IsList(),
 	)
+	fmt.Println()
 
-	if s == "" {
-		return "" //, errors.New("invaid string")
-	}
-
-	// 如果查询的超出范围
-	if self.pos+len(s) >= self.length { //是否已经到末端了??
-		lStr = self.stream[self.pos:]
-		self.pos = self.length // 移到末端
-		return lStr            //, io.EOF    //如果是-->获取当前游标以后的数据
-	}
-
-	pos = self.pos + 1
-	for { //循环直到匹配到"{{"返回
-		self.consume_whitespace()
-		self.next()
-		if self.isEof {
-			return ""
+	_printStringList(1, list)
+}
+func _printStringList(idx int, list *TStringList) {
+	for i, Item := range list.Items() {
+		for j := 0; j < idx; j++ { // 空格距离ss
+			fmt.Print("  ")
 		}
-		//if self.stream[cur_pos] == '\n' { //判断是否到行末
-		//	newlines++
-		//}
-
-		// 直到找到 第一个 和S 要查询的字符一样
-		if self.char != s[0] { //当前是不是 目标字符
-			continue //重新循环
+		if idx > 0 {
+			fmt.Print("┗", "  ")
 		}
+		fmt.Printf(
+			"[%d]  Count:%d  Text:%v  IsList:%v ",
+			i,
+			Item.Count(),
+			Item.String(),
+			Item.IsList(),
+		)
 
-		//pos = self.pos                    //偏移到包含 S之内的 游标地址
-		text := self.stream[pos:self.pos] //读取{{这段数据
-		//self.pos = pos                    //设置偏移为当前偏移					/* 2 offset n */
-
-		//utils.Dbg("scan_string match", pos, self.pos)
-		return text
-
-		// 没找到的话继续循环,这是转向下一个字符的唯一代码
+		fmt.Println()
+		_printStringList(idx+1, Item)
 	}
-
-	//should never be here
-	return ""
 }
 
-// s Html文件流
-/*
-[('foo', '=', 'bar')]
-foo = 'bar'
-
-[('id', 'in', [1,2,3])]
-id in (1, 2, 3)
-
-[('field', '=', 'value'), ('field', '<>', 42)]
-( field = 'value' AND field <> 42 )
-
-[('&', ('field', '<', 'value'), ('field', '>', 'value'))]
-( field < 'value' AND field > 'value' )
-
-[('|', ('field', '=', 'value'), ('field', '=', 'value'))]
-( field = 'value' OR field = 'value' )
-
-[('&', ('field1', '=', 'value'), ('field2', '=', 'value'), ('|', ('field3', '<>', 'value'), ('field4', '=', 'value')))]
-( field1 = 'value' AND field2 = 'value' AND ( field3 <> 'value' OR field4 = 'value' ) )
-
-[('&', ('|', ('a', '=', 1), ('b', '=', 2)), ('|', ('c', '=', 3), ('d', '=', 4)))]
-( ( a = 1 OR b = 2 ) AND ( c = 3 OR d = 4 ) )
-
-[('|', (('a', '=', 1), ('b', '=', 2)), (('c', '=', 3), ('d', '=', 4)))]
-( ( a = 1 AND b = 2 ) OR ( c = 3 AND d = 4 ) )
-*/
-// ['&', ('active', '=', True), ('value', '!=', 'foo')]
-// ['|', ('active', '=', True), ('state', 'in', ['open', 'draft'])
-// ['&', ('active', '=', True), '|', '!', ('state', '=', 'closed'), ('state', '=', 'draft')]
-// ['|', '|', ('state', '=', 'open'), ('state', '=', 'closed'), ('state', '=', 'draft')]
-// ['!', '&', '!', ('id', 'in', [42, 666]), ('active', '=', False)]
-// ['!', ['=', 'company_id.name', ['&', ..., ...]]]
-//	[('picking_id.picking_type_id.code', '=', 'incoming'), ('location_id.usage', '!=', 'internal'), ('location_dest_id.usage', '=', 'internal')]
-
-func (self *TStringParser) _parselist(list *TStringList) error {
-	// 处理规则
-	// List 不直接跳出 [('field', '=', 'value'), ('field', '<>', 42)] 如果处理到第一个跳出 第二个则无法继续
-	// 存储值的List 可以直接跳出 例如：('id', 'in', [42, 666])  100%确定不需要处理其他List
-
-	var (
-		lPos  int = 0
-		lStr  string
-		lVals []string
-		char  string
-	)
-
-	//utils.Dbg("begin for")
-	// 不是文件末端
-	for !self.lexer.isEof {
-
-		// 忽略空白
-		self.lexer.consume_whitespace()
-
-		//utils.Dbg("switch", string(self.lexer.char))
-		char = string(self.lexer.char)
-		switch char {
-		case "(", "[": //('active', '=', True)
-			{
-				// 新建链
-				lLst := &TStringList{startPos: self.lexer.pos}
-
-				// 移动游标到下一个非空格
-				self.lexer.consume_whitespace()
-				self.lexer.next()
-				if self.lexer.isEof {
-					goto exit
-				}
-
-				/*	if isAlphaNumeric(rune(self.lexer.char)) {
-						lStr = self.lexer.scan_string(")")
-						if self.lexer.isEof {
-							goto exit
-						}
-						utils.Dbg("(", string(self.lexer.char), lStr)
-						lVals = strings.Split(lStr, ",")
-						for _, val := range lVals {
-							lLst.items = append(lLst.items, &TStringList{text: val})
-						}
-
-					} else { // ['&', (
-						utils.Dbg("(", string(self.lexer.char), lStr)
-				*/
-				//self.lexer.backup()
-				if isAlphaNumeric(rune(self.lexer.char)) { // [1,2,3]
-					self.lexer.backup()
-					lStr = self.lexer.scan_string("]")
-					if self.lexer.isEof {
-						goto exit
-					}
-
-					//utils.Dbg("New val ", string(self.lexer.char), lStr)
-
-					lVals = strings.Split(lStr, ",")
-					for _, val := range lVals {
-						lLst.items = append(lLst.items, &TStringList{text: val})
-					}
-
-					// 读写字符串传
-					lLst.endPos = self.lexer.pos + 1
-					lLst.text = self.lexer.stream[lLst.startPos:lLst.endPos]
-					//utils.Dbg("list text", lLst.text)
-
-					// 插入
-					list.items = append(list.items, lLst)
-
-					// 继续处理后面的")"  ...[42, 666])
-					self.lexer.consume_whitespace()
-					self.lexer.next()
-					if self.lexer.isEof {
-						goto exit
-					}
-
-					if self.lexer.char == ')' || self.lexer.char == ']' {
-						goto exit // 列表末端 跳出
-						break
-					} else {
-						self.lexer.backup() // 回滚 继续
-					}
-				} else { // ['&', (
-					//utils.Dbg("[ into parselist", string(self.lexer.char), lStr)
-					err := self._parselist(lLst)
-					if err != nil {
-
-					}
-
-					//self.lexer.consume_whitespace()
-					//self.lexer.next()
-					//lStr = self.lexer.scan_string("]")
-					//utils.Dbg("list rnd", lLst.text)
-				}
-				//}
-				lLst.endPos = self.lexer.pos + 1
-				lLst.text = self.lexer.stream[lLst.startPos:lLst.endPos]
-				//fmt.Println("()list ( text", lLst.text)
-				list.items = append(list.items, lLst)
-
-				//goto exit // NOTE:末尾不能直接跳出，有可能有下一个Listt要执行
-			}
-			/*
-				case "[": //['&', ('active', '=', True), ('value', '!=', 'foo')]
-					{
-						// 新建链
-						lLst := &TStringList{startPos: self.lexer.pos}
-
-						self.lexer.consume_whitespace()
-						self.lexer.next()
-						if self.lexer.isEof {
-							goto exit
-						}
-
-						if isAlphaNumeric(rune(self.lexer.char)) { // [1,2,3]
-							self.lexer.backup()
-							lStr = self.lexer.scan_string("]")
-							if self.lexer.isEof {
-								goto exit
-							}
-
-							//utils.Dbg("New val ", string(self.lexer.char), lStr)
-
-							lVals = strings.Split(lStr, ",")
-							for _, val := range lVals {
-								lLst.items = append(lLst.items, &TStringList{text: val})
-							}
-
-							// 读写字符串传
-							lLst.endPos = self.lexer.pos + 1
-							lLst.text = self.lexer.stream[lLst.startPos:lLst.endPos]
-							//utils.Dbg("list text", lLst.text)
-
-							// 插入
-							list.items = append(list.items, lLst)
-
-							// 继续处理后面的")"  ...[42, 666])
-							self.lexer.consume_whitespace()
-							self.lexer.next()
-							if self.lexer.isEof {
-								goto exit
-							}
-
-							if self.lexer.char == ')' || self.lexer.char == ']' {
-								goto exit // 列表末端 跳出
-								break
-							} else {
-								self.lexer.backup() // 回滚 继续
-							}
-						} else { // ['&', (
-							//utils.Dbg("[ into parselist", string(self.lexer.char), lStr)
-							err := self._parselist(lLst)
-							if err != nil {
-
-							}
-
-							//self.lexer.consume_whitespace()
-							//self.lexer.next()
-							//lStr = self.lexer.scan_string("]")
-							//utils.Dbg("list rnd", lLst.text)
-						}
-
-						// 读写字符串传
-						lLst.endPos = self.lexer.pos + 1
-						lLst.text = self.lexer.stream[lLst.startPos:lLst.endPos]
-						//utils.Dbg("[]list text", lLst.text)
-
-						// 插入
-						list.items = append(list.items, lLst)
-
-						//goto exit // NOTE:末尾不能直接跳出，有可能有下一个Listt要执行
-					}
-			*/
-		case "'", `"`:
-			{
-
-				//获取另一个引号 ('xx's', 可能字符有"’" 所以必须遇见","
-				for {
-					lStr = self.lexer.scan_string(char)
-					if self.lexer.isEof {
-						goto exit
-					}
-					//utils.Dbg("':", string(self.lexer.char), lStr)
-
-					// 确定下一个字符是 "," 这是一个Block结束
-					self.lexer.consume_whitespace()
-					self.lexer.next()
-					if self.lexer.isEof {
-						goto exit
-					}
-					if self.lexer.char == ',' {
-						//utils.Dbg("New text", lStr)
-						list.items = append(list.items, &TStringList{text: lStr})
-						self.lexer.backup()
-						//utils.Dbg("New backup", string(self.lexer.char))
-						break // 推出循环
-					} else if self.lexer.char == ')' || self.lexer.char == ']' {
-						//utils.Dbg("New text", lStr)
-						list.items = append(list.items, &TStringList{text: lStr})
-						// NOTE: 列表末尾不backup
-						goto exit // 结束列表
-					}
-				}
-			}
-
-		case ",":
-			{
-				// 如果","的下一个字符是数字字母并“）]”结束 则取值
-				// 否则 跳出循环
-				self.lexer.consume_whitespace()
-				lPos = self.lexer.pos + 1 // 减","
-				for {
-					self.lexer.consume_whitespace()
-					self.lexer.next()
-					if self.lexer.isEof {
-						goto exit
-					}
-
-					// 如果是字母数字 向下
-					if isAlphaNumeric(rune(self.lexer.char)) {
-						continue
-					} else {
-						if self.lexer.char == ']' || self.lexer.char == ')' {
-							lStr = self.lexer.stream[lPos:self.lexer.pos]
-							list.items = append(list.items, &TStringList{text: lStr})
-							//utils.Dbg("New text", lStr)
-							goto exit
-
-							// 以下代码不执行
-							self.lexer.consume_whitespace()
-							self.lexer.next()
-							if self.lexer.isEof {
-								goto exit
-							}
-							if self.lexer.char == ']' || self.lexer.char == ')' {
-								goto exit
-							}
-
-						} else {
-							// 回退1 并跳出For
-							self.lexer.backup()
-							break
-						}
-					}
-				}
-
-				//bracket = 1
-			}
-		default:
-			{
-				//bracket = 0
-			}
-		}
-		//	utils.Dbg("end")
-		self.lexer.consume_whitespace()
-		self.lexer.next()
-	}
-
-exit:
-	return nil
-}
-
-// 解析
-func (self *TStringParser) parse() error {
-	//utils.Dbg("domain", self.lexer.stream)
-
-	// 检查合法性
-	if !strings.HasPrefix(self.lexer.stream, "[") && !strings.HasSuffix(self.lexer.stream, "]") {
-		//utils.Dbg("invaild domain")
-		return errors.New("invaild domain")
-	}
-
-	return self._parselist(self.strings)
-}
-
-//---------------text
-/*
-func (self *TStringText) Item(idx int) IString {
-	return self // 超范围返回自己
-}
-
-func (self *TStringText) Len() int {
-	return 1
-}
-func (self *TStringText) Text() string {
-	return self.text
-}
-
-func (self *TStringText) IsList() bool {
-	return false
-}
-
-func (self *TStringText) String(idx int) string {
-	return self.text
-}
-*/
 //-----------list
 func (self *TStringList) Item(idx int) *TStringList {
-	self.Update()
+	//self.Update()
 
 	if self.IsList() {
 		if idx < len(self.items) {
@@ -589,14 +162,14 @@ func (self *TStringList) SetText(text string, idx ...int) {
 	if len(idx) == 0 {
 		// 不是List才能直接修改TEXT 否者需要解析到Items 再生成Text
 		if !self.IsList() {
-			self.text = text
+			self.Text = text
 		}
 	} else if len(self.items)-1 >= idx[0] {
-		self.items[idx[0]] = &TStringList{text: text}
+		self.items[idx[0]] = NewStringList(text) //
 	} else {
 		// 不是List才能直接修改TEXT 否者需要解析到Items 再生成Text
 		if !self.IsList() {
-			self.items[idx[0]].text = text
+			self.items[idx[0]].Text = text
 		}
 	}
 
@@ -614,7 +187,7 @@ func (self *TStringList) Shift() *TStringList {
 
 	// # 正式清空所有字符
 	if len(self.items) == 0 {
-		self.text = ""
+		self.Text = ""
 	}
 
 	self.updated = false
@@ -634,20 +207,47 @@ func (self *TStringList) Pop() (lst *TStringList) {
 
 	//# 正式清空所有字符 避免Push时添加Text为新item
 	if len(self.items) == 0 {
-		self.text = ""
+		self.Text = ""
 	}
 	self.updated = false
 	return lst
 }
 
 //栈方法Push：叠加元素
+func (self *TStringList) __Push(items ...interface{}) *TStringList {
+	if len(items) > 0 {
+		// 当Self是一个值时必须添加自己到items里成为列表的一部分
+		add_self := self.Text != "" && len(self.items) == 0
+		for _, item := range items {
+			switch item.(type) {
+			case string:
+				if add_self {
+					self.items = append(self.items, NewStringList(self.Text))
+					add_self = false
+				}
+				self.items = append(self.items, NewStringList(item.(string)))
+				self.updated = false
+			case *TStringList:
+				if add_self {
+					self.items = append(self.items, NewStringList(self.Text))
+					add_self = false
+				}
+				self.items = append(self.items, item.(*TStringList))
+				self.updated = false
+			}
+		}
+	}
+
+	return self
+}
+
+//栈方法Push：叠加元素
 func (self *TStringList) Push(item ...*TStringList) *TStringList {
 	// 当Self是一个值时必须添加自己到items里成为列表的一部分
-	if self.text != "" && len(self.items) == 0 {
-		self.items = append(self.items, NewStringList(self.text))
+	if self.Text != "" && len(self.items) == 0 {
+		self.items = append(self.items, NewStringList(self.Text))
 	}
 	self.items = append(self.items, item...)
-
 	self.updated = false
 	return self
 }
@@ -655,8 +255,8 @@ func (self *TStringList) Push(item ...*TStringList) *TStringList {
 // #添加字符串到该 List
 func (self *TStringList) PushString(strs ...string) *TStringList {
 	// 当Self是一个值时必须添加自己到items里成为列表的一部分
-	if self.text != "" && len(self.items) == 0 {
-		self.items = append(self.items, NewStringList(self.text))
+	if self.Text != "" && len(self.items) == 0 {
+		self.items = append(self.items, NewStringList(self.Text))
 	}
 
 	for _, str := range strs {
@@ -675,24 +275,39 @@ func (self *TStringList) AddSubList(strs ...string) *TStringList {
 	return self
 }
 
-func (self *TStringList) Insert(idx int, item *TStringList) {
-	// Grow the slice by one element.
-	// make([]Token, len(self.Child)+1)
-	// self.Child[0 : len(self.Child)+1]
-	self.items = append(self.items, item)
-	// Use copy to move the upper part of the slice out of the way and open a hole.
+func (self *TStringList) Insert(idx int, item interface{}) {
+	var must_move bool = false
+	var new_item *TStringList
 
-	copy(self.items[idx+1:], self.items[idx:])
-	// Store the new value.
-	self.items[idx] = item
-	// Return the result.
+	switch item.(type) {
+	case string:
+		new_item = NewStringList(item.(string))
+		self.items = append(self.items, new_item)
+		must_move = true
+	case *TStringList:
+		new_item = item.(*TStringList)
+		// Grow the slice by one element.
+		// make([]Token, len(self.Child)+1)
+		// self.Child[0 : len(self.Child)+1]
+		self.items = append(self.items, new_item)
+		// Use copy to move the upper part of the slice out of the way and open a hole.
+		must_move = true
+	default:
+		// 不支持
+	}
 
+	if must_move {
+		copy(self.items[idx+1:], self.items[idx:])
+		// Store the new value.
+		self.items[idx] = new_item
+		// Return the result.
+	}
 	self.updated = false
 	return
 }
 
-func (self *TStringList) InsertString(idx int, str string) {
-	self.Insert(idx, &TStringList{text: str})
+func (self *TStringList) __InsertString(idx int, str string) {
+	self.Insert(idx, &TStringList{Text: str})
 }
 
 // TODO: 为避免错乱,移除后复制一个新的返回结果
@@ -716,7 +331,7 @@ func (self *TStringList) IsBaseString() bool {
 
 // 生成集合 one 和集合 other 的并集
 func (self *TStringList) Union(other *TStringList) {
-	if other == nil || other.Len() == 0 {
+	if other == nil || other.Count() == 0 {
 		return
 	}
 
@@ -739,11 +354,11 @@ func (self *TStringList) IsBaseInt() bool {
 }
 
 // 废弃retur the list length
-func (self *TStringList) Len() int {
+func (self *TStringList) __Len() int {
 	return len(self.items)
 }
 
-// retur the list length
+// return the list length
 func (self *TStringList) Count() int {
 	return len(self.items)
 }
@@ -754,19 +369,17 @@ func (self *TStringList) IsList() bool {
 
 func (self *TStringList) In(strs ...interface{}) bool {
 	for _, itr := range strs {
-		// 处理字符串
-		if str, ok := itr.(string); ok {
-			if self.text == str {
+		switch itr.(type) {
+		case string: // 处理字符串
+			if self.Text == itr.(string) {
 				return true
 			}
-		} else
-		// 处理*TStringList 类型
-		if item, ok := itr.(*TStringList); ok {
-			if self.text == item.text {
+		case *TStringList: // 处理*TStringList 类型
+			if self.Text == itr.(*TStringList).Text {
 				return true
 			}
-		}
 
+		}
 	}
 
 	return false
@@ -778,11 +391,11 @@ func (self *TStringList) Find(itr interface{}) *TStringList {
 		if itm.IsList() {
 			return itm.Find(itr)
 		} else if str, ok := itr.(string); ok {
-			if itm.text == str {
+			if itm.Text == str {
 				return itm
 			}
 		} else if item, ok := itr.(*TStringList); ok {
-			if itm.text == item.text {
+			if itm.Text == item.Text {
 				return itm
 			}
 		}
@@ -816,7 +429,7 @@ func (self *TStringList) Has(strs ...interface{}) bool {
 }
 
 // ('xx','xx')
-func (self *TStringList) AsString(idx ...int) string {
+func (self *TStringList) __AsString(idx ...int) string {
 	if self.IsList() {
 		return self.String(idx...)
 	}
@@ -825,40 +438,44 @@ func (self *TStringList) AsString(idx ...int) string {
 }
 
 // return 'xx','xx'
+// 当self 时列表时idx有效,反则返回Text
 func (self *TStringList) String(idx ...int) string {
-	self.Update()
-
 	if len(idx) > 0 {
 		if self.IsList() {
 			if idx[0] > -1 && idx[0] < len(self.items) {
-				return self.items[idx[0]].text
+				return self.items[idx[0]].Text
 			} else {
 				return "" // 超范围返回空
 			}
 		}
-	} else {
-		return self.text
 	}
-	return ""
+
+	//self.Update()
+	return self.Text
 }
 
 // 返回所有Items字符
 func (self *TStringList) Strings(idx ...int) (result []string) {
-	self.Update()
+	//self.Update()
 
 	lCnt := len(idx)
 
 	if lCnt == 0 { // 返回所有
-		for _, item := range self.items {
-			result = append(result, item.text)
+		if len(self.items) == 0 {
+			result = append(result, self.Text)
+		} else {
+			for _, item := range self.items {
+				result = append(result, item.Text)
+			}
 		}
+
 	} else if lCnt == 1 {
-		result = append(result, self.items[idx[0]].text)
+		result = append(result, self.items[idx[0]].Text)
 
 	} else if lCnt > 1 {
 
 		for _, item := range self.items[idx[0]:idx[1]] {
-			result = append(result, item.Text())
+			result = append(result, item.Text)
 		}
 	}
 
@@ -867,10 +484,10 @@ func (self *TStringList) Strings(idx ...int) (result []string) {
 
 // 复制一个反转版
 func (self *TStringList) Reversed() (result *TStringList) {
-	self.Update()
+	//self.Update()
 
 	result = NewStringList()
-	lCnt := self.Len()
+	lCnt := self.Count()
 	for i := lCnt - 1; i >= 0; i-- {
 		result.Push(self.items[i]) //TODO: 复制
 	}
@@ -878,29 +495,32 @@ func (self *TStringList) Reversed() (result *TStringList) {
 }
 
 func (self *TStringList) Clear() {
-	self.startPos = 0
-	self.endPos = 0
+	self.StartPos = 0
+	self.EndPos = 0
 	self.updated = true
-	self.text = ""
+	self.Text = ""
 	self.items = nil // make([]*TStringList, 0)
 }
 
 //在原有基础上克隆
+// len(idx)==0:返回所有
+// len(idx)==1:返回Idx 指定item
+// len(idx)>1:返回Slice 范围的items
 func (self *TStringList) Clone(idx ...int) (result *TStringList) {
-	self.Update()
+	//self.Update()
 
 	lCnt := len(idx)
 	if lCnt == 0 {
 		result = NewStringList()
-		result.Push(self.Items(0, self.Len()-1)...)
-	} else if lCnt == 1 && idx[0] < self.Len() { // idex 必须小于Self长度
+		result.Push(self.Items(0, self.Count()-1)...)
+	} else if lCnt == 1 && idx[0] < self.Count() { // idex 必须小于Self长度
 		result = NewStringList()
-		result.Push(self.Items(idx[0], self.Len()-1)...) //result.Push(self.items[idx[0]])
-	} else if lCnt > 1 && idx[0] < self.Len() && idx[1] < self.Len() {
+		result.Push(self.Items(idx[0], self.Count()-1)...) //result.Push(self.items[idx[0]])
+	} else if lCnt > 1 && idx[0] < self.Count() && idx[1] < self.Count() {
 		result = NewStringList()
 		if idx[1] == -1 {
 			// 复制到end
-			result.Push(self.items[idx[0]:self.Len()]...)
+			result.Push(self.items[idx[0]:self.Count()]...)
 		} else if idx[0] < idx[1] {
 			// 复制到Offset
 			result.Push(self.items[idx[0]:idx[1]]...)
@@ -915,23 +535,26 @@ func (self *TStringList) Clone(idx ...int) (result *TStringList) {
 // len(idx)==1:返回Idx 指定item
 // len(idx)>1:返回Slice 范围的items
 func (self *TStringList) Items(idx ...int) (result []*TStringList) {
-	self.Update()
+	//self.Update()
 
 	lCnt := len(idx)
 
+	/*  ??? 待考究
 	if !self.IsList() {
 		// 如果是空白的对象 返回Nil
-		if self.text == "" {
-			return
+		if self.Text == "" {
+			return nil
 		}
 
 		return []*TStringList{self}
 	}
+	*/
+
 	if lCnt == 0 {
 		return self.items // 返回所有
-	} else if lCnt == 1 && idx[0] < self.Len() { // idex 必须小于Self长度
+	} else if lCnt == 1 && idx[0] < self.Count() { // idex 必须小于Self长度
 		result = append(result, self.items[idx[0]])
-	} else if lCnt > 1 && idx[0] < self.Len() && idx[1] < self.Len() {
+	} else if lCnt > 1 && idx[0] < self.Count() && idx[1] < self.Count() {
 		//if idx[0]>idx[1]{
 		//
 		//}
@@ -964,11 +587,11 @@ Examples::
 "*/
 // 返回列表中的所有值
 func (self *TStringList) Flatten() (result []string) {
-	self.Update()
+	//self.Update()
 
 	// # 当StringList作为一个单字符串
-	if self.text != "" && len(self.items) == 0 {
-		result = []string{self.text}
+	if self.Text != "" && len(self.items) == 0 {
+		result = []string{self.Text}
 		return
 	}
 
@@ -984,17 +607,17 @@ func (self *TStringList) Flatten() (result []string) {
 }
 
 // 废弃
-func (self *TStringList) Text(idx ...int) string {
-	self.Update()
+func (self *TStringList) __Text(idx ...int) string {
+	//self.Update()
 
 	if len(idx) > 0 {
-		return self.Item(idx[0]).text
+		return self.Item(idx[0]).Text
 	}
-	return self.text
+	return self.Text
 }
 
 //废弃
-func (self *TStringList) Type() int {
+func (self *TStringList) __Type() int {
 	if len(self.items) == 0 {
 		return 0
 	}
@@ -1002,73 +625,77 @@ func (self *TStringList) Type() int {
 }
 
 // 添加''
-func (self *TStringList) _quote(str string) string {
+func (self *TStringList) Quote(str string) string {
 	return self.quoteChar + str + self.quoteChar
 }
 
 // 更新生成所有Text内容
-func (self *TStringList) _update(node *TStringList) {
-	//STEP  如果是Value Object 不处理
-	if len(node.items) == 0 {
-		return
-	}
-
-	// 处理有Child的Object
-	lStr := ""
-	lStrLst := make([]string, 0)
-	IsList := false
-
-	for _, item := range node.items {
-		if is_leaf(item) {
-			lStr = `(` + self._quote(item.String(0)) + `, ` + self._quote(item.String(1)) + `, `
-			if item.Item(2).IsList() {
-				lStr = lStr + `[` + item.String(2) + `])`
-			} else {
-				lStr = lStr + self._quote(item.String(2)) + `)`
-			}
-
-			item.text = lStr
-			//utils.Dbg("_update leaf", lStr)
-			IsList = true
-			lStrLst = append(lStrLst, item.text)
-		} else if item.IsList() {
-			//utils.Dbg("IsList", item.text)
-			self._update(item)
-			lStrLst = append(lStrLst, item.text)
+func _update(node *TStringList) {
+	/*	//STEP  如果是Value Object 不处理
+		IsList := false
+		if len(node.items) == 0 {
+			return
 		} else {
-			//utils.Dbg("_update val", item.text)
-			lStrLst = append(lStrLst, self._quote(item.text))
+			IsList = true
 		}
-	}
 
-	/*	// 组合 XX,XX
+		// 处理有Child的Object
+		lStr := ""
 		lStrLst := make([]string, 0)
+
 		for _, item := range node.items {
-			if item.IsList() {
+			if is_leaf(item) {
+				lStr = `(` + node._quote(item.String(0)) + `, ` + node._quote(item.String(1)) + `, `
+				if item.Item(2).IsList() {
+					lStr = lStr + `[` + item.String(2) + `])`
+				} else {
+					lStr = lStr + node._quote(item.String(2)) + `)`
+				}
+
+				item.text = lStr
+				//utils.Dbg("_update leaf", lStr)
+				IsList = true
+				lStrLst = append(lStrLst, item.text)
+			} else if item.IsList() {
+				//utils.Dbg("IsList", item.text)
+				_update(item)
 				lStrLst = append(lStrLst, item.text)
 			} else {
-				lStrLst = append(lStrLst, self._quote(item.text))
+				//utils.Dbg("_update val", item.text)
+				lStrLst = append(lStrLst, node._quote(item.text))
 			}
-		}*/
-	lStr = strings.Join(lStrLst, ",")
+		}
 
-	//if lStr == "" {
-	//	lStr = self._quote(node.text) // 如果是Val Node
-	//}
+		/*	// 组合 XX,XX
+			lStrLst := make([]string, 0)
+			for _, item := range node.items {
+				if item.IsList() {
+					lStrLst = append(lStrLst, item.text)
+				} else {
+					lStrLst = append(lStrLst, self._quote(item.text))
+				}
+			}*/
+	/*	lStr = strings.Join(lStrLst, ",")
 
-	// 组合[XX,XX]
-	if self == node && IsList {
-		lStr = `[` + lStr + `]`
-	}
+		//if lStr == "" {
+		//	lStr = self._quote(node.text) // 如果是Val Node
+		//}
 
-	node.text = lStr
-	//utils.Dbg("_update lst", lStr)
+		// 组合[XX,XX]
+		//if self == node && IsList {
+		if IsList {
+			lStr = `[` + lStr + `]`
+		}
+
+		node.text = lStr
+		//utils.Dbg("_update lst", lStr)
+	*/
 }
 
 // 更新生成所有Text内容
 func (self *TStringList) Update() {
 	if !self.updated {
-		self._update(self)
+		self.format_func(self)
 		self.updated = true
 	}
 
@@ -1082,71 +709,34 @@ func (self *TStringList) Update() {
 	}*/
 }
 
+func (self *TStringList) FormatFunc(f func(self *TStringList)) {
+	self.format_func = f
+}
+
 func (self *TStringList) AsBool() bool {
-	if b, err := strconv.ParseBool(self.text); err == nil {
+	if b, err := strconv.ParseBool(self.Text); err == nil {
 		return b //	fmt.Printf("%T, %v\n", s, s)
 	}
 	return false
 }
 
 func (self *TStringList) AsInt() int64 {
-	if b, err := strconv.ParseInt(self.text, 10, 0); err == nil {
+	if b, err := strconv.ParseInt(self.Text, 10, 0); err == nil {
 		return b //	fmt.Printf("%T, %v\n", s, s)
 	}
 	return -1
 }
 
 func (self *TStringList) IsBool() bool {
-	if _, err := strconv.ParseBool(self.text); err == nil {
+	if _, err := strconv.ParseBool(self.Text); err == nil {
 		return true //	fmt.Printf("%T, %v\n", s, s)
 	}
 	return false
 }
 
 func (self *TStringList) IsInt() bool {
-	if _, err := strconv.ParseInt(self.text, 10, 0); err == nil {
+	if _, err := strconv.ParseInt(self.Text, 10, 0); err == nil {
 		return true //	fmt.Printf("%T, %v\n", s, s)
 	}
 	return false
-}
-
-func isAlphaNumeric(r rune) bool {
-	return r == '_' || unicode.IsLetter(r) || unicode.IsDigit(r)
-}
-
-/*""" Test whether an object is a valid domain term:
-    - is a list or tuple
-    - with 3 elements
-    - second element if a valid op
-
-    :param tuple element: a leaf in form (left, operator, right)
-    :param boolean internal: allow or not the 'inselect' internal operator
-        in the term. This should be always left to False.
-
-    Note: OLD TODO change the share wizard to use this function.
-"""*/
-func is_leaf(element *TStringList, internal ...bool) bool {
-	INTERNAL_OPS := append(TERM_OPERATORS, "<>")
-	if internal != nil && internal[0] {
-		INTERNAL_OPS = append(INTERNAL_OPS, "inselect")
-		INTERNAL_OPS = append(INTERNAL_OPS, "not inselect")
-	}
-
-	//??? 出现过==Nil还是继续执行之下的代码
-	return (element != nil && element.IsList()) &&
-		(element.Len() == 3) &&
-		InStrings(element.String(1), INTERNAL_OPS...) ||
-		InStrings(element.String(), TRUE_LEAF, FALSE_LEAF)
-
-	/*
-	   def is_leaf(element, internal=False):
-
-	       INTERNAL_OPS = TERM_OPERATORS + ('<>',)
-	       if internal:
-	           INTERNAL_OPS += ('inselect', 'not inselect')
-	       return (isinstance(element, tuple) or isinstance(element, list)) \
-	           and len(element) == 3 \
-	           and element[1] in INTERNAL_OPS \
-	           and ((isinstance(element[0], basestring) and element[0]) or tuple(element) in (TRUE_LEAF, FALSE_LEAF))
-	*/
 }

@@ -1,8 +1,14 @@
 package utils
 
 import (
+	"bytes"
 	"reflect"
 	"strconv"
+	"unicode"
+)
+
+var (
+	special_bytes = []byte(`.\+*?|[]{}^$`)
 )
 
 // 只解析'true','false'
@@ -97,4 +103,24 @@ func Equal(a, b interface{}) bool {
 		}
 	}
 	return false
+}
+
+func IsSpecialByte(ch byte) bool {
+	return bytes.IndexByte(special_bytes, ch) > -1
+}
+
+func IsAlphaByte(ch byte) bool {
+	return 'a' <= ch && ch <= 'z' || 'A' <= ch && ch <= 'Z' || ch == '_'
+}
+
+func IsDigitByte(ch byte) bool {
+	return '0' <= ch && ch <= '9'
+}
+
+func IsAlnumByte(ch byte) bool {
+	return IsAlphaByte(ch) || IsDigitByte(ch)
+}
+
+func IsAlphaNumericRune(r rune) bool {
+	return r == '_' || unicode.IsLetter(r) || unicode.IsDigit(r)
 }

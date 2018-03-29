@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -33,6 +34,7 @@ func AppDir() string {
 	return filepath.Base(AppPath())
 }
 
+// TEST
 // return current file path including file name
 func CurFilePath() string {
 	//info, file, line, ok := runtime.Caller(3)
@@ -41,17 +43,28 @@ func CurFilePath() string {
 	return file
 }
 
+// TODO: 有缺陷
 // get current file path without file name
-func CurPath() string {
+func _cur_path() string {
 	//info, file, line, ok := runtime.Caller(3)
-	_, file, _, _ := runtime.Caller(3)
+	_, file, _, _ := runtime.Caller(1) // level 3
+	fmt.Println("pa", file, CurFilePath())
+	path, _ := path.Split(file)
+	return path
+}
+
+// could not call _cur_path directly to get path. it must keep in 3 level
+func CurPath() string {
+	_, file, _, _ := runtime.Caller(2) // level 3
 	path, _ := path.Split(file)
 	return path
 }
 
 // get current file dir name
 func CurDirName() string {
-	return filepath.Base(CurPath())
+	_, file, _, _ := runtime.Caller(3) // level 3
+	path, _ := path.Split(file)
+	return filepath.Base(path)
 }
 
 // 获得文件信息,如果文件存在不出错且不是文件夹

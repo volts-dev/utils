@@ -71,3 +71,25 @@ func IsBlank(v interface{}) bool {
 	}
 	return v == blank
 }
+
+func Clone(i interface{}) interface{} {
+	// Wrap argument to reflect.Value, dereference it and return back as interface{}
+	//new := reflect.Indirect(reflect.ValueOf(i)).Addr().Interface()
+
+	//return new
+	/*	val := reflect.ValueOf(i)
+		if val.CanAddr() {
+			return val.Interface()
+		}
+
+		return val.Addr().Interface()
+	*/
+
+	if reflect.TypeOf(i).Kind() == reflect.Ptr {
+		// Pointer:
+		return reflect.New(reflect.ValueOf(i).Elem().Type()).Interface()
+	} else {
+		// Not pointer:
+		return reflect.New(reflect.TypeOf(i)).Elem().Interface()
+	}
+}

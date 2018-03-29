@@ -1,5 +1,9 @@
 package utils
 
+import (
+	"strings"
+)
+
 func Insert(slice []interface{}, index int, value interface{}) {
 	// Grow the slice by one element.
 	// make([]Token, len(self.Child)+1)
@@ -52,21 +56,36 @@ func StringsIntersect(a []string, b []string) (res []string) {
 }
 
 // check if string in other strings
-func InStrings(target string, other ...string) bool {
-	if len(other) == 0 {
-		return false
-	}
-	for _, str := range other {
+// return the index of the list otherwise -1 no match found
+func InStrings(target string, other ...string) int {
+	for idx, str := range other {
 		if target == str {
-			return true
+			return idx
 		}
 	}
-	return false
+	return -1
+}
+
+func HasStrings(target string, other ...string) int {
+	for _, str := range other {
+		if idx := strings.Index(target, str); idx != -1 {
+			return idx
+		}
+	}
+	return -1
 }
 
 // 复制一个反转版
 func Reversed(lst []string) (result []string) {
 	result = make([]string, 0)
+	for i := len(lst) - 1; i >= 0; i-- {
+		result = append(result, lst[i])
+	}
+	return
+}
+
+func ReverseItfs(lst ...interface{}) (result []interface{}) {
+	result = make([]interface{}, 0)
 	for i := len(lst) - 1; i >= 0; i-- {
 		result = append(result, lst[i])
 	}
@@ -91,4 +110,39 @@ func Itfs2Strs(m []interface{}) (res []string) {
 	}
 
 	return
+}
+
+func IntsToStrs(m []int64) (res []string) {
+	res = make([]string, 0)
+
+	for _, val := range m {
+		res = append(res, IntToStr(val))
+	}
+
+	return
+}
+
+func JoinQuote(list []string, quote, sep string) string {
+	cnt := len(list)
+	if cnt > 0 {
+		n := (len(sep) * cnt) - 1
+		for i := 0; i < len(list); i++ {
+			n += len(list[i]) + 2
+		}
+
+		b := make([]byte, n)
+		bp := 0 //copy(b, list[0])
+		for i, s := range list {
+			if i != 0 {
+				bp += copy(b[bp:], sep)
+			}
+			bp += copy(b[bp:], quote)
+			bp += copy(b[bp:], s)
+			bp += copy(b[bp:], quote)
+		}
+
+		return string(b)
+	}
+
+	return ""
 }
