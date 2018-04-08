@@ -29,15 +29,19 @@ func JsonBodyAsMap(body []byte) (m map[string]interface{}, err error) {
 	return
 }
 
-func StrToInt64(s string) (i int64) {
-	i, _ = strconv.ParseInt(s, 10, 0)
-	return
+func StrToInt64(s string) int64 {
+	i, err := strconv.ParseInt(s, 10, 0)
+	if err != nil {
+		fmt.Errorf("Unsupported type StrToInt(%s) %s", s, err.Error())
+
+	}
+	return i
 }
 
 func StrToInt(s string) int {
 	i, err := strconv.Atoi(s)
 	if err != nil {
-		// handle error
+		fmt.Errorf("Unsupported type StrToInt(%s) %s", s, err.Error())
 	}
 	return i
 }
@@ -47,14 +51,15 @@ func BoolToStr(b bool) (str string) {
 }
 
 func StrToBool(str string) (b bool) {
-	if b, err := strconv.ParseBool(str); err == nil {
-		return b //	fmt.Printf("%T, %v\n", s, s)
+	b, err := strconv.ParseBool(str)
+	if err != nil {
+		fmt.Errorf("faild to convert StrToBool(%s) with error : %s", str, err.Error())
+		return false
 	}
-	return false
+	return b //	fmt.Printf("%T, %v\n", s, s)
 }
 
 func IntToStr(i interface{}) string {
-	//ParseInt
 	switch i.(type) {
 	case int, int8, int16, int32, int64:
 		return fmt.Sprintf("%d", i)
@@ -79,21 +84,22 @@ func FloatToStr(f float64) string {
 	return strconv.FormatFloat(f, 'f', -1, 64)
 }
 
-func StrToFloat(str string) (f float64) {
+func StrToFloat(str string) float64 {
 	f, err := strconv.ParseFloat(str, 64)
-	//	LogErr(err)
 	if err != nil {
-		fmt.Errorf(err.Error())
+		//fmt.Errorf(err.Error())
+		fmt.Errorf("faild to convert StrToFloat(%s) with error : %s", str, err.Error())
 	}
 
-	return
+	return f
 }
 
 // HexToBytes converts a hex string representation of bytes to a byte representation
 func HexToBytes(h string) []byte {
 	s, err := hex.DecodeString(h)
 	if err != nil {
-		s = []byte("")
+		fmt.Errorf("faild to convert BytesToFloat(%s) with error : %s", h, err.Error())
+		return []byte("")
 	}
 	return s
 }
@@ -112,7 +118,7 @@ func BytesToInt64(buf []byte) int64 {
 func BytesToFloat(buf []byte) (res float64) {
 	res, err := strconv.ParseFloat(string(buf), 32)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Errorf("faild to convert BytesToFloat(%s) with error : %s", string(buf), err.Error())
 	}
 	return
 }
@@ -121,7 +127,8 @@ func BytesToFloat(buf []byte) (res float64) {
 func Base64ToBytes(h string) []byte {
 	s, err := base64.URLEncoding.DecodeString(h)
 	if err != nil {
-		s = []byte("")
+		fmt.Errorf("faild to convert Base64ToBytes(%s) with error : %s", h, err.Error())
+		return []byte("")
 	}
 	return s
 }
@@ -147,9 +154,53 @@ func Itf2Bool(val interface{}) (res bool) {
 		return vv.Uint() != 0
 	case reflect.String:
 		if b, err := strconv.ParseBool(vv.String()); err != nil {
-			fmt.Errorf("Unsupported type %v", vv.Type().Name())
+			fmt.Errorf("Unsupported type Itf2Bool(%v) error : %s", vv.Type().Name(), err.Error())
 		} else {
 			return b
+		}
+	default:
+		fmt.Errorf("Unsupported type Itf2Bool(%v)", vv.Type().Name())
+	}
+	return
+}
+
+func Itf2Int(val interface{}) (res int) {
+	if val == nil {
+		return
+	}
+
+	t := reflect.TypeOf(val)
+	vv := reflect.Indirect(reflect.ValueOf(val))
+	switch t.Kind() {
+	//checked
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		return int(vv.Int())
+
+		//checked
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		return int(vv.Uint())
+
+	//checked
+	case reflect.Float32, reflect.Float64:
+		return int(vv.Float())
+
+		//checked
+	case reflect.String:
+		return StrToInt(vv.String())
+		/*
+			if i, err := strconv.ParseInt(vv.String(), 10, 0); err != nil {
+				fmt.Errorf("Unsupported type %v", vv.Type().Name())
+			} else {
+				return i
+			}
+		*/
+	case reflect.Array, reflect.Slice:
+		switch t.Elem().Kind() {
+		case reflect.Uint8:
+			data := vv.Interface().([]byte)
+			return int(binary.BigEndian.Uint32(data))
+		default:
+			fmt.Errorf("Unsupported struct type %v", vv.Type().Name())
 		}
 	default:
 		fmt.Errorf("Unsupported type %v", vv.Type().Name())
@@ -157,7 +208,7 @@ func Itf2Bool(val interface{}) (res bool) {
 	return
 }
 
-func Itf2Int(val interface{}) (res int64) {
+func Itf2Int64(val interface{}) (res int64) {
 	if val == nil {
 		return
 	}
@@ -179,22 +230,23 @@ func Itf2Int(val interface{}) (res int64) {
 
 		//checked
 	case reflect.String:
-		if i, err := strconv.ParseInt(vv.String(), 10, 0); err != nil {
+		return StrToInt64(vv.String())
+		/*if i, err := strconv.ParseInt(vv.String(), 10, 0); err != nil {
 			fmt.Errorf("Unsupported type %v", vv.Type().Name())
 		} else {
 			return i
 		}
-
+		*/
 	case reflect.Array, reflect.Slice:
 		switch t.Elem().Kind() {
 		case reflect.Uint8:
 			data := vv.Interface().([]byte)
 			return int64(binary.BigEndian.Uint64(data))
 		default:
-			fmt.Errorf("Unsupported struct type %v", vv.Type().Name())
+			fmt.Errorf("Unsupported struct type Itf2Int64(%v)", vv.Type().Name())
 		}
 	default:
-		fmt.Errorf("Unsupported type %v", vv.Type().Name())
+		fmt.Errorf("Unsupported type Itf2Int64(%v)", vv.Type().Name())
 	}
 	return
 }
@@ -213,12 +265,12 @@ func Itf2Float(val interface{}) (res float64) {
 		return vv.Float()
 	case reflect.String:
 		if f, err := strconv.ParseFloat(vv.String(), 64); err != nil {
-			fmt.Errorf("Unsupported type %v", vv.Type().Name())
+			fmt.Errorf("Unsupported type Itf2Float(%v) error : %s", vv.Type().Name(), err.Error())
 		} else {
 			return f
 		}
 	default:
-		fmt.Errorf("Unsupported type %v", vv.Type().Name())
+		fmt.Errorf("Unsupported type Itf2Float(%v)", vv.Type().Name())
 	}
 	return
 }
@@ -249,7 +301,7 @@ func Itf2Str(val interface{}) (res string) {
 			data := vv.Interface().([]byte)
 			return string(data)
 		default:
-			fmt.Errorf("Unsupported struct type %v", vv.Type().Name())
+			fmt.Errorf("Unsupported struct type Itf2Str(%v)", vv.Type().Name())
 		}
 	//时间类型
 	case reflect.Struct:
@@ -258,7 +310,7 @@ func Itf2Str(val interface{}) (res string) {
 		if t.ConvertibleTo(TimeType) {
 			return vv.Convert(TimeType).Interface().(time.Time).Format(time.RFC3339Nano)
 		} else {
-			fmt.Errorf("Unsupported struct type %v", vv.Type().Name())
+			fmt.Errorf("Unsupported struct type Itf2Str(%v)", vv.Type().Name())
 		}
 	case reflect.Bool:
 		return strconv.FormatBool(vv.Bool())
@@ -272,7 +324,7 @@ func Itf2Str(val interface{}) (res string) {
 	   case reflect.Chan, reflect.Func, reflect.Interface:
 	*/
 	default:
-		fmt.Errorf("Unsupported struct type %v", vv.Type().Name())
+		fmt.Errorf("Unsupported struct type Itf2Str(%v)", vv.Type().Name())
 	}
 	return
 }
@@ -294,10 +346,10 @@ func Itf2Time(val interface{}) (res time.Time) {
 	case reflect.String:
 
 		if tm, err := time.Parse("2006-01-02 15:04:05", vv.String()); err != nil {
-			fmt.Errorf("Unsupported type %v", vv.Type().Name())
+			fmt.Errorf("Unsupported type Itf2Time(%v) error : %s", vv.Type().Name(), err.Error())
 			//fmt.Println("String1:", val, vv.String(), err.Error())
 		} else {
-			fmt.Errorf("Unsupported type %v", tm)
+			fmt.Errorf("Unsupported type Itf2Time(%v)", tm)
 			return tm
 		}
 	case reflect.Struct:
@@ -308,10 +360,10 @@ func Itf2Time(val interface{}) (res time.Time) {
 		if t.ConvertibleTo(TimeType) {
 			return vv.Interface().(time.Time)
 		} else {
-			fmt.Errorf("Unsupported struct type %v", vv.Type().Name())
+			fmt.Errorf("Unsupported struct type Itf2Time(%v)", vv.Type().Name())
 		}
 	default:
-		fmt.Errorf("Unsupported type %v", vv.Type().Name())
+		fmt.Errorf("Unsupported type Itf2Time(%v)", vv.Type().Name())
 	}
 	return
 }
