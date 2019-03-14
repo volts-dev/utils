@@ -69,6 +69,10 @@ func CurDirName() string {
 
 // 获得文件信息,如果文件存在不出错且不是文件夹
 func FileExists(dir string) bool {
+	if dir[0] == '\\' {
+		dir = dir[1:]
+	}
+
 	info, err := os.Stat(dir)
 	if err != nil {
 		return false
