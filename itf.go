@@ -59,16 +59,20 @@ func IsBlank(v interface{}) bool {
 	case *time.Time:
 		blank = new(time.Time)
 
-	case []byte, []string:
-		return reflect.ValueOf(v).Len() == 0
-
 	default:
+		// for interface
 		if v == nil {
+			return true
+		}
+
+		// for array
+		if reflect.ValueOf(v).Len() == 0 {
 			return true
 		}
 
 		fmt.Println("the type %s can not support", v)
 	}
+
 	return v == blank
 }
 

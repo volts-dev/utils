@@ -2,9 +2,12 @@ package utils
 
 import (
 	"crypto/md5"
+	"errors"
 	"fmt"
 	"reflect"
+	"strconv"
 	"strings"
+	"unicode/utf8"
 )
 
 func Md5(AStr string) string {
@@ -128,4 +131,81 @@ func PluralizeString(str string) string {
 		str = str[:len(str)-1] + "ie"
 	}
 	return str + "s"
+}
+
+// contains reports whether the string contains the byte c.
+func contains(s string, c byte) bool {
+	for i := 0; i < len(s); i++ {
+		if s[i] == c {
+			return true
+		}
+	}
+	return false
+}
+
+// Unquote interprets s as a single-quoted, double-quoted,
+// or backquoted Go string literal, returning the string value
+// that s quotes.  (If s is single-quoted, it would be a Go
+// character literal; Unquote returns the corresponding
+// one-character string.)
+func Unquote(s string) (string, error) {
+	n := len(s)
+	if n < 2 {
+		return "", errors.New("invalid quoted string")
+	}
+	quote := s[0]
+	if quote != s[n-1] {
+		return "", errors.New("lost the quote symbol on the end")
+	}
+	s = s[1 : n-1]
+
+	if quote == '`' {
+		if contains(s, '`') {
+			return "", errors.New("the '`' symbol is found on the content")
+		}
+		return s, nil
+	}
+
+	if quote != '"' && quote != '\'' {
+		return "", errors.New("lost the quote symbol on the begin")
+	}
+
+	//if contains(s, '\n') {
+	//	//Println("contains(s, '\n')")
+	//	return "contains(s, '\n')", strconv.ErrSyntax
+	//}
+
+	// Is it trivial?  Avoid allocation.
+	if !contains(s, '\\') && !contains(s, quote) {
+		switch quote {
+		case '"':
+			return s, nil
+		case '\'':
+			r, size := utf8.DecodeRuneInString(s)
+			if size == len(s) && (r != utf8.RuneError || size != 1) {
+				return s, nil
+			}
+		}
+	}
+
+	var runeTmp [utf8.UTFMax]byte
+	buf := make([]byte, 0, 3*len(s)/2) // Try to avoid more allocations.
+	for len(s) > 0 {
+		c, multibyte, ss, err := strconv.UnquoteChar(s, quote)
+		if err != nil {
+			return "", err
+		}
+		s = ss
+		if c < utf8.RuneSelf || !multibyte {
+			buf = append(buf, byte(c))
+		} else {
+			n := utf8.EncodeRune(runeTmp[:], c)
+			buf = append(buf, runeTmp[:n]...)
+		}
+		if quote == '\'' && len(s) != 0 {
+			// single-quoted must be single character
+			return "", strconv.ErrSyntax
+		}
+	}
+	return string(buf), nil
 }
