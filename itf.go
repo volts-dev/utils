@@ -70,7 +70,8 @@ func IsBlank(v interface{}) bool {
 			return true
 		}
 
-		fmt.Println("the type %s can not support", v)
+		return false
+		//fmt.Println("the type %s can not support", v)
 	}
 
 	return v == blank
