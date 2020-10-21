@@ -66,6 +66,15 @@ func InStrings(target string, other ...string) int {
 	return -1
 }
 
+func InInts(target int, other ...int) int {
+	for idx, i := range other {
+		if target == i {
+			return idx
+		}
+	}
+	return -1
+}
+
 func HasStrings(target string, other ...string) int {
 	for _, str := range other {
 		if idx := strings.Index(target, str); idx != -1 {
