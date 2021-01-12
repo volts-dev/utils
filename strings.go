@@ -39,7 +39,6 @@ func SameText(AStrA string, AStrB string) bool {
 
 func TrimCasedName(name string) string {
 	newstr := make([]rune, 0)
-	firstTime := true
 
 	for _, chr := range name {
 		if isUpper := 'A' <= chr && chr <= 'Z'; isUpper {
