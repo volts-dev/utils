@@ -42,7 +42,7 @@ func TrimCasedName(name string) string {
 
 	for _, chr := range name {
 		if isUpper := 'A' <= chr && chr <= 'Z'; isUpper {
-			chr -= ('A' - 'a')
+			//chr -= ('A' - 'a')
 			newstr = append(newstr, chr)
 		}
 	}
