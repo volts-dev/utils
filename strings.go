@@ -37,6 +37,20 @@ func SameText(AStrA string, AStrB string) bool {
 
 }
 
+func TrimCasedName(name string) string {
+	newstr := make([]rune, 0)
+	firstTime := true
+
+	for _, chr := range name {
+		if isUpper := 'A' <= chr && chr <= 'Z'; isUpper {
+			chr -= ('A' - 'a')
+			newstr = append(newstr, chr)
+		}
+	}
+
+	return string(newstr)
+}
+
 // convert like this: "HelloWorld" to "hello_world"
 func SnakeCasedName(name string) string {
 	newstr := make([]rune, 0)
@@ -94,12 +108,12 @@ func DotCasedName(name string) string {
 	return string(newstr)
 }
 
-// convert like this: "hello_world" to "HelloWorld"
+// convert string from "hello_world" to "HelloWorld"
 func TitleCasedName(name string) string {
 	return _titleCasedName(name, false)
 }
 
-// convert like this: "hello_world" to "HelloWorld"
+// convert string from "hello_world" to "HelloWorld"
 func TitleCasedNameWithSpace(name string) string {
 	return _titleCasedName(name, true)
 }
