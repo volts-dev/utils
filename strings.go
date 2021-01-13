@@ -37,14 +37,27 @@ func SameText(AStrA string, AStrB string) bool {
 
 }
 
+// "HelloWorld" to "hello_world" to "HW"
 func TrimCasedName(name string) string {
-	newstr := make([]rune, 0)
+	var newstr []rune
+	upNextChar := true
 
 	for _, chr := range name {
-		if isUpper := 'A' <= chr && chr <= 'Z'; isUpper {
-			//chr -= ('A' - 'a')
-			newstr = append(newstr, chr)
+		if 'A' <= chr && chr <= 'Z' {
+			upNextChar = false
+		} else if upNextChar {
+			upNextChar = false
+		} else if chr == '_' || chr == '.' {
+			upNextChar = true
+			if sapce {
+				newstr = append(newstr, ' ')
+			}
+			continue
+		} else {
+			continue
 		}
+		newstr = append(newstr, chr)
+
 	}
 
 	return string(newstr)
