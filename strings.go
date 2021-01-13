@@ -49,9 +49,6 @@ func TrimCasedName(name string) string {
 			upNextChar = false
 		} else if chr == '_' || chr == '.' {
 			upNextChar = true
-			if sapce {
-				newstr = append(newstr, ' ')
-			}
 			continue
 		} else {
 			continue
