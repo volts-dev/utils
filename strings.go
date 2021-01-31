@@ -28,6 +28,11 @@ func Trim(s string) string {
 	return strings.Trim(s, " ")
 }
 
+func TrimQuotes(s string) string {
+	s = strings.Trim(s, "''")
+	return strings.Trim(s, "'")
+}
+
 func SameText(AStrA string, AStrB string) bool {
 	if strings.ToLower(AStrA) == strings.ToLower(AStrB) {
 		return true
