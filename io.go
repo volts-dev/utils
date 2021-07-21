@@ -41,7 +41,7 @@ func CopyFile(source string, dest string) (err error) {
 //filter: jpg|go|png
 func CopyDir(source string, dest string, filter string) (err error) {
 	if source == dest {
-		errors.New("Can not copy to same dir !")
+		return errors.New("Can not copy to same dir !")
 	}
 	// get properties of source dir
 	sourceinfo, err := os.Stat(source)

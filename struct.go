@@ -568,7 +568,7 @@ func strctVal(s interface{}) reflect.Value {
 
 // Map converts the given struct to a map[string]interface{}. For more info
 // refer to Struct types Map() method. It panics if s's kind is not struct.
-func Map(s interface{}) map[string]interface{} {
+func Struct2ItfMap(s interface{}) map[string]interface{} {
 	return NewStructMapper(s).Map()
 }
 

@@ -130,6 +130,4 @@ func JoinURL(org, src string) string {
 	} else {
 		return url
 	}
-	///	Debug(url, org, src)
-	return ""
 }

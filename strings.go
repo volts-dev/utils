@@ -8,7 +8,40 @@ import (
 	"strconv"
 	"strings"
 	"unicode/utf8"
+	"unsafe"
 )
+
+func StringToSliceByte(s string) []byte {
+	x := (*[2]uintptr)(unsafe.Pointer(&s))
+	h := [3]uintptr{x[0], x[1], x[1]}
+	return *(*[]byte)(unsafe.Pointer(&h))
+}
+
+func StrToInt64(s string) int64 {
+	i, err := strconv.ParseInt(s, 10, 0)
+	if err != nil {
+		fmt.Printf("Unsupported type StrToInt(%s) %s", s, err.Error())
+
+	}
+	return i
+}
+
+func StrToInt(s string) int {
+	i, err := strconv.Atoi(s)
+	if err != nil {
+		fmt.Printf("Unsupported type StrToInt(%s) %s", s, err.Error())
+	}
+	return i
+}
+
+func StrToBool(str string) (b bool) {
+	b, err := strconv.ParseBool(str)
+	if err != nil {
+		fmt.Printf("faild to convert StrToBool(%s) with error : %s", str, err.Error())
+		return false
+	}
+	return b //	fmt.Printf("%T, %v\n", s, s)
+}
 
 func Md5(AStr string) string {
 	return fmt.Sprintf("%x", md5.Sum([]byte(AStr)))
@@ -98,8 +131,6 @@ func Obj2Name(obj interface{}) string {
 			return lName
 		}
 	}
-
-	return ""
 }
 
 // convert like this: "HelloWorld" to "hello.world"

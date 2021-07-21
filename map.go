@@ -118,21 +118,21 @@ func GetStrMapField(lst interface{}, field string) (result []string) {
 	return
 }
 
-func MergeMaps(aSrc, aDes map[string]interface{}) map[string]interface{} {
-	if aSrc == nil { //如果没有res
-		return aDes
-	} else { //如果有res
-		if aDes == nil { //且没有des
-			aDes = aSrc
-			return aSrc
-		} else { //两者都有合并
-			for key, value := range aSrc {
-				aDes[key] = value
-			}
+func MergeMaps(to map[string]interface{}, from ...map[string]interface{}) map[string]interface{} {
+	if from != nil { //如果有res
+		if to == nil { //且没有des
+			to = make(map[string]interface{})
+		}
 
+		//两者都有合并
+		for i := 0; len(from) > 0; i++ {
+			for key, value := range from[i] {
+				to[key] = value
+			}
 		}
 	}
-	return aDes
+
+	return to
 }
 
 func StrMap2ItfMap(m map[string]string) (res_map map[string]interface{}) {
