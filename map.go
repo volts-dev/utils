@@ -125,7 +125,7 @@ func MergeMaps(to map[string]interface{}, from ...map[string]interface{}) map[st
 		}
 
 		//两者都有合并
-		for i := 0; len(from) > 0; i++ {
+		for i := 0; i < len(from); i++ {
 			for key, value := range from[i] {
 				to[key] = value
 			}
