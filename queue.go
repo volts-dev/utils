@@ -10,7 +10,6 @@ type (
 		pos    *node
 		length int
 		cap    int
-		loop   bool
 	}
 
 	node struct {
@@ -20,15 +19,8 @@ type (
 	}
 )
 
-func (self *node) IsLast() bool {
-	return self.isLast
-}
-
 // Create a new queue
-func NewQueue(loop ...bool) *Queue {
-	if len(loop) > 0 {
-		return &Queue{loop: loop[0]}
-	}
+func NewQueue() *Queue {
 	return &Queue{}
 }
 
@@ -50,10 +42,9 @@ func (self *Queue) Dequeue() interface{} {
 			self.pos = self.start.next
 		}
 		self.start = self.start.next
-		//if self.Loop {
 		self.end.next = self.start
-		//}
 	}
+
 	self.length--
 	return n.value
 }
@@ -72,10 +63,8 @@ func (self *Queue) Enqueue(value interface{}) {
 		self.end.isLast = false
 		self.end.next = n
 		self.end = n
-		//if self.Loop {
-		//self.end.next = self.start
-		//}
 	}
+
 	self.length++
 	self.Unlock()
 }
@@ -98,7 +87,7 @@ func (self *Queue) IsFull() bool {
 }
 
 func (self *Queue) IsLast() bool {
-	return self.pos == self.end
+	return self.pos.isLast
 }
 
 // move peek position to first node
