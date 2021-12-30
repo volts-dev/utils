@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -68,6 +69,7 @@ func CurDirName() string {
 }
 
 // 获得文件信息,如果文件存在不出错且不是文件夹
+// 废弃
 func FileExists(dir string) bool {
 	if dir[0] == '\\' {
 		dir = dir[1:]
@@ -79,6 +81,26 @@ func FileExists(dir string) bool {
 	}
 	//fmt.Println("FileIsDir", info.IsDir())
 	return !info.IsDir()
+}
+
+func IsPathExists(path string) (bool, error) {
+	if path[0] == '\\' {
+		path = path[1:]
+	}
+
+	stat, err := os.Stat(path)
+	if err == nil {
+		if stat.Mode()&os.ModeType == 0 {
+			return true, nil
+		}
+		return false, errors.New(path + " exists but is not regular file")
+	}
+
+	if os.IsNotExist(err) {
+		return false, nil
+	}
+
+	return false, err
 }
 
 func DirExists(dir string) bool {
@@ -121,6 +143,7 @@ func GetFileLists(dir string) []string {
 	return fs
 }
 
+// TODO
 func JoinURL(org, src string) string {
 	// 当字符串里有["/"]时,保留它.某些URL /search/和/search不同
 	url := path.Join(org, src)

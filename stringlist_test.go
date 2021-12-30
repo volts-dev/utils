@@ -24,22 +24,22 @@ func TestParser(t *testing.T) {
 
 func Test_add_sub_item(t *testing.T) {
 	lLst := NewStringList("sdfa")
-	if lLst.Len() == 1 {
+	if lLst.Count() == 1 {
 		t.Log("Create ok", lLst.String())
 	}
 
 	lLst.PushString("asdf")
-	if lLst.Len() == 2 {
+	if lLst.Count() == 2 {
 		t.Log("PushString ok", lLst.String())
 	}
 
 	lPop := lLst.Pop()
-	if lLst.Len() == 1 {
+	if lLst.Count() == 1 {
 		t.Log("Pop ok", lPop, lLst.String())
 	}
 
 	lShift := lLst.Shift()
-	if lLst.Len() == 0 {
+	if lLst.Count() == 0 {
 		t.Log("Shift ok", lShift, lLst.String())
 	}
 
@@ -48,7 +48,7 @@ func Test_add_sub_item(t *testing.T) {
 
 	lLst2 := NewStringList()
 	lLst2.Push(lLst)
-	if lLst2.Len() == 1 {
+	if lLst2.Count() == 1 {
 		t.Log("Push ok", lLst2.String())
 	}
 
@@ -57,7 +57,7 @@ func Test_add_sub_item(t *testing.T) {
 
 func Test_has(t *testing.T) {
 	Lst := NewStringList("sdfa")
-	if Lst.Len() == 1 {
+	if Lst.Count() == 1 {
 		t.Log("Create ok", Lst.String())
 	}
 	Item0 := NewStringList(`"res_partner" as "res_user__partner_id"`)
