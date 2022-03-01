@@ -11,6 +11,10 @@ import (
 	"unsafe"
 )
 
+func IsNumeric(v string) (int64, error) {
+	return strconv.ParseInt(v, 10, 64)
+}
+
 func StringToSliceByte(s string) []byte {
 	x := (*[2]uintptr)(unsafe.Pointer(&s))
 	h := [3]uintptr{x[0], x[1], x[1]}

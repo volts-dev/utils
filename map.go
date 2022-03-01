@@ -39,9 +39,9 @@ func (self *TMap) Get(k interface{}) interface{} {
 func (self *TMap) Set(k interface{}, v interface{}) bool {
 	self.Lock()
 	defer self.Unlock()
-
 	self.data[k] = v
 	atomic.StoreInt32(&self.len, self.len+1)
+
 	return true
 }
 
@@ -56,33 +56,31 @@ func (self *TMap) ___Check(k interface{}) bool {
 // Delete the given key and value.
 func (self *TMap) Delete(k interface{}) {
 	self.Lock()
-	defer self.Unlock()
 	delete(self.data, k)
-
 	atomic.StoreInt32(&self.len, self.len-1)
+	self.Unlock()
 }
 
 // Items returns all items in safemap.
 func (self *TMap) Items() map[interface{}]interface{} {
-	self.RLock()
-	defer self.RUnlock()
-
 	r := make(map[interface{}]interface{})
+	self.RLock()
 	for k, v := range self.data {
 		r[k] = v
 	}
+	self.RUnlock()
 	return r
 }
 
 func (self *TMap) Range(fn func(k, v interface{}) bool) {
 	self.RLock()
 	defer self.RUnlock()
-
 	for k, v := range self.data {
 		if !fn(k, v) {
 			break
 		}
 	}
+
 }
 
 // Count returns the number of items within the map.
