@@ -87,6 +87,9 @@ func (self *Queue) IsFull() bool {
 }
 
 func (self *Queue) IsLast() bool {
+	if self.pos == nil {
+		return true
+	}
 	return self.pos.isLast
 }
 
@@ -104,6 +107,9 @@ func (self *Queue) Last() {
 func (self *Queue) Peek() (value interface{}, islast bool) {
 	self.Lock()
 	n := self.pos
+	if n == nil {
+		return nil, true
+	}
 	self.pos = self.pos.next
 	self.Unlock()
 	return n.value, n.isLast

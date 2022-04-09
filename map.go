@@ -24,6 +24,12 @@ func NewMap() *TMap {
 	}
 }
 
+func (self *TMap) Clear(k interface{}) {
+	self.Lock()
+	self.data = make(map[interface{}]interface{})
+	self.Unlock()
+}
+
 // Get from maps return the k's value
 func (self *TMap) Get(k interface{}) interface{} {
 	self.RLock()
@@ -46,7 +52,7 @@ func (self *TMap) Set(k interface{}, v interface{}) bool {
 }
 
 // Check Returns true if k is exist in the map.
-func (self *TMap) ___Check(k interface{}) bool {
+func (self *TMap) IsExist(k interface{}) bool {
 	self.Lock()
 	defer self.Unlock()
 	_, ok := self.data[k]

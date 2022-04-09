@@ -246,14 +246,16 @@ func Itf2Time(val interface{}) (res time.Time) {
 			return time.Unix(int64(vv.Uint()), 0)
 
 		case reflect.String:
-
-			if tm, err := time.Parse("2006-01-02 15:04:05", vv.String()); err != nil {
-				fmt.Printf("Unsupported type Itf2Time(%v) error : %s", vv.Type().Name(), err.Error())
-				//fmt.Println("String1:", val, vv.String(), err.Error())
+			if tm, err := time.Parse("2006-01-02 15:04:05", vv.String()); err == nil {
+				//fmt.Printf("Unsupported type Itf2Time(%v) error : %s", vv.Type().Name(), err.Error())
+				return tm
+			} else if tm, err := time.Parse(time.RFC3339Nano, vv.String()); err == nil {
+				return tm
 			} else {
-				fmt.Printf("Unsupported type Itf2Time(%v)", tm)
+				fmt.Printf("Unsupported type Itf2Time(%v) error : %s", vv.Type().Name(), err.Error())
 				return tm
 			}
+
 		case reflect.Struct:
 			var c_TIME_DEFAULT time.Time
 			TimeType := reflect.TypeOf(c_TIME_DEFAULT)
