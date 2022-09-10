@@ -31,8 +31,8 @@ type (
 	Struct struct {
 		raw     interface{}
 		value   reflect.Value
-		TagName string
-		IsFlat  bool
+		TagName string // 默认是"field"
+		IsFlat  bool   // 继承字段是否平铺
 	}
 )
 
@@ -233,23 +233,23 @@ func (s *Struct) Map(in ...map[string]interface{}) (out map[string]interface{}) 
 		val := s.value.FieldByName(name)
 
 		var finalVal interface{}
-		//tag := field.Tag.Get(s.TagName)
+		tag := field.Tag.Get(s.TagName)
 		//fmt.Println("Map:", name, s.TagName, tag)
-		//tagName, tagOpts := parseTag(tag)
-		//if tagName != "" {
-		//	name = tagName
-		//}
+		tagName, tagOpts := parseTag(tag)
+		if tagName != "" {
+			name = tagName
+		}
 
 		// if the value is a zero value and the field is marked as omitempty do
 		// not include
-		/*if tagOpts.Has("omitempty") {
+		if tagOpts.Has("omitempty") {
 			zero := reflect.Zero(val.Type()).Interface()
 			current := val.Interface()
 
 			if reflect.DeepEqual(current, zero) {
 				continue
 			}
-		}*/
+		}
 
 		if IsStruct(val.Interface()) /* && !tagOpts.Has("omitnested") */ {
 			n := NewStructMapper(val.Interface())

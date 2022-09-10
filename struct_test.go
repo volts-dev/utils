@@ -12,22 +12,21 @@ type (
 		//	c []string
 	}
 	SubTest2 struct {
-		E string `field:"aa"`
+		E string `field:"ee"`
 		F int
 		//	c []string
 	}
 	Test struct {
-		SubTest `field:"-"`
+		SubTest `field:"-"` // 忽略
 		SubTest2
-		A string `field:"aa"`
-		b int    `field:"aa"`
+		MyName string
+		Age    int `field:"myage"`
 		//	c []string
 	}
 )
 
 func TestConvert(t *testing.T) {
-	fmt.Println("ffff")
-	ts := &Test{A: "fff", b: 44 /*c: []string{"gdf", "dfg"}*/}
+	ts := &Test{MyName: "fff", Age: 44 /*c: []string{"gdf", "dfg"}*/}
 	ts.C = "asd"
 	ts.D = 12
 	ts.E = "E"
@@ -36,5 +35,7 @@ func TestConvert(t *testing.T) {
 	//fmt.Println("ffff", ts, n.Map())
 
 	n.IsFlat = true
-	fmt.Println("ffff", ts, n.Map())
+	fmt.Println(ts)
+	fmt.Println(n.Map())
+
 }
