@@ -7,12 +7,17 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"unicode"
 	"unicode/utf8"
 	"unsafe"
 )
 
 func IsNumeric(v string) (int64, error) {
 	return strconv.ParseInt(v, 10, 64)
+}
+
+func IsStartUpper(s string) bool {
+	return unicode.IsUpper([]rune(s)[0])
 }
 
 func StringToSliceByte(s string) []byte {
