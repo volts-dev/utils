@@ -127,6 +127,14 @@ func (f *Field) Set(val interface{}) error {
 	return nil
 }
 
+func (f *Field) SetInt(val int64) {
+	f.value.SetInt(val)
+}
+
+func (f *Field) SetUint(val uint64) {
+	f.value.SetUint(val)
+}
+
 // Zero sets the field to its zero value. It returns an error if the field is not
 // settable (not addressable or not exported).
 func (f *Field) Zero() error {
