@@ -164,16 +164,17 @@ func DotCasedName(name string) string {
 
 // convert string from "hello_world" to "HelloWorld"
 func TitleCasedName(name string) string {
-	return _titleCasedName(name, false)
+	return titleCasedName(name, false)
 }
 
 // convert string from "hello_world" to "HelloWorld"
 func TitleCasedNameWithSpace(name string) string {
-	return _titleCasedName(name, true)
+	return titleCasedName(name, true)
 }
-func _titleCasedName(name string, sapce bool) string {
+
+func titleCasedName(name string, sapce bool) string {
 	newstr := make([]rune, 0)
-	upNextChar := true
+	upNextChar := !IsStartUpper(name)
 
 	for _, chr := range name {
 		switch {
