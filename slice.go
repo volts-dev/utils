@@ -66,6 +66,15 @@ func InStrings(target string, other ...string) int {
 	return -1
 }
 
+func In[T string | int | int64](target T, other ...T) int {
+	for idx, str := range other {
+		if target == str {
+			return idx
+		}
+	}
+	return -1
+}
+
 func InInts(target int, other ...int) int {
 	for idx, i := range other {
 		if target == i {
@@ -85,24 +94,20 @@ func HasStrings(target string, other ...string) int {
 }
 
 // 复制一个反转版
-func Reversed(lst []string) (result []string) {
-	result = make([]string, 0)
-	for i := len(lst) - 1; i >= 0; i-- {
-		result = append(result, lst[i])
+func Reversed[T string | int | any](v ...T) []T {
+	slice := make([]T, len(v))
+	for i, val := range v {
+		slice[i] = val
 	}
-	return
+
+	return slice
 }
 
-func ReverseItfs(lst ...interface{}) (result []interface{}) {
-	result = make([]interface{}, 0)
-	for i := len(lst) - 1; i >= 0; i-- {
-		result = append(result, lst[i])
-	}
-	return
-}
-
-func ToAnySlice[T int | float32 | float64 | string](v []T) []any {
+func ToAnySlice[T int | int64 | float32 | float64 | string](v ...T) []any {
 	slice := make([]any, len(v))
+	for i, val := range v {
+		slice[i] = val
+	}
 
 	return slice
 }
