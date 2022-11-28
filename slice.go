@@ -101,14 +101,29 @@ func ReverseItfs(lst ...interface{}) (result []interface{}) {
 	return
 }
 
-func Strs2Itfs(m []string) (res_slice []interface{}) {
-	res_slice = make([]interface{}, 0)
+func ToAnySlice[T int | float32 | float64 | string](v []T) []any {
+	slice := make([]any, len(v))
 
-	for _, val := range m {
-		res_slice = append(res_slice, val)
+	return slice
+}
+
+func Strs2Itfs(m []string) []interface{} {
+	res_slice := make([]interface{}, len(m))
+
+	for i, val := range m {
+		res_slice[i] = val
+	}
+	return res_slice
+}
+
+func IntsToItfs(m []int64) []interface{} {
+	res_slice := make([]interface{}, len(m))
+
+	for i, val := range m {
+		res_slice[i] = val
 	}
 
-	return
+	return res_slice
 }
 
 func Itfs2Strs(m []interface{}) (res []string) {
