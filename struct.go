@@ -591,6 +591,21 @@ func Struct2flatMap(s interface{}) map[string]interface{} {
 	return n.Map()
 }
 
+func AnyToMap(value interface{}) (map[string]interface{}, error) {
+	switch v := value.(type) {
+	case map[string]any:
+		return v, nil
+	default:
+		vv := reflect.ValueOf(value)
+		if vv.Kind() != reflect.Struct {
+			break
+		}
+
+		return Struct2ItfMap(value), nil
+	}
+	return nil, errors.New("not suport this data for model update")
+}
+
 // Values converts the given struct to a []interface{}. For more info refer to
 // Struct types Values() method.  It panics if s's kind is not struct.
 func Values(s interface{}) []interface{} {
