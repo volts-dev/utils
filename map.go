@@ -5,7 +5,8 @@ import (
 	"sync/atomic"
 )
 
-//"reflect"
+// "reflect"
+//
 //	"strings"
 type (
 	//TMap map[string]interface{}
@@ -17,6 +18,15 @@ type (
 		data map[interface{}]interface{}
 	}
 )
+
+func MapToAnyList[T map[string]string | map[string]any](maps ...T) []any {
+	result := make([]any, len(maps))
+	for _, m := range maps {
+		result = append(result, m)
+	}
+
+	return result
+}
 
 func NewMap() *TMap {
 	return &TMap{

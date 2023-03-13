@@ -68,7 +68,6 @@ var (
 // Note that this will return false for int64 etc. types.
 func toInt(v interface{}) (int, bool) {
 	switch v := v.(type) {
-
 	case time.Weekday:
 		return int(v), true
 	case time.Month:
