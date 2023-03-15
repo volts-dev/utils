@@ -94,12 +94,11 @@ func HasStrings(target string, other ...string) int {
 }
 
 // 复制一个反转版
-func Reversed[T string | int | any](v ...T) []T {
-	slice := make([]T, len(v))
-	for i, val := range v {
-		slice[i] = val
+func Reversed[T comparable](v ...T) []T {
+	var slice []T
+	for i := len(v) - 1; i >= 0; i-- {
+		slice = append(slice, v[i])
 	}
-
 	return slice
 }
 

@@ -21,8 +21,8 @@ type (
 
 func MapToAnyList[T map[string]string | map[string]any](maps ...T) []any {
 	result := make([]any, len(maps))
-	for _, m := range maps {
-		result = append(result, m)
+	for i, m := range maps {
+		result[i] = m
 	}
 
 	return result
@@ -158,9 +158,12 @@ func MergeMaps(to map[string]interface{}, from ...map[string]interface{}) map[st
 	return to
 }
 
-func StrMap2ItfMap(m map[string]string) (res_map map[string]interface{}) {
-	//res_map=make(map[string]interface{})
-	return nil
+func ToItfMap(m map[string]string) map[string]any {
+	res_map := make(map[string]any)
+	for k, v := range m {
+		res_map[k] = v
+	}
+	return res_map
 }
 
 func ItfMap2StrMap(m map[string]interface{}) map[string]string {
