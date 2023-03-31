@@ -71,7 +71,7 @@ func Trim(s string) string {
 }
 
 func TrimQuotes(s string) string {
-	s = strings.Trim(s, "''")
+	s = strings.Trim(s, `"`)
 	return strings.Trim(s, "'")
 }
 
