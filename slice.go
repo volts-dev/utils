@@ -4,6 +4,18 @@ import (
 	"strings"
 )
 
+func SliceEqual[T comparable](a []T, b []T) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i, v := range a {
+		if v != b[i] {
+			return false
+		}
+	}
+	return true
+}
+
 func Insert(slice []interface{}, index int, value interface{}) {
 	// Grow the slice by one element.
 	// make([]Token, len(self.Child)+1)
