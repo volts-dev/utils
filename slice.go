@@ -78,7 +78,7 @@ func InStrings(target string, other ...string) int {
 	return -1
 }
 
-func In[T string | int | int64](target T, other ...T) int {
+func In[T comparable](target T, other ...T) int {
 	for idx, str := range other {
 		if target == str {
 			return idx

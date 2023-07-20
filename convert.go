@@ -282,7 +282,7 @@ func ToInt(i interface{}) int {
 		if err == nil {
 			return int(s)
 		}
-		fmt.Errorf("unable to cast %#v of type %T to int64", i, i)
+		fmt.Printf("unable to cast %#v of type %T to int64", i, i)
 		return 0
 	case json.Number:
 		return ToInt(string(v))
@@ -299,7 +299,7 @@ func ToInt(i interface{}) int {
 			return intv
 		}
 
-		fmt.Errorf("unable to cast %#v of type %T to int", i, i)
+		fmt.Printf("unable to cast %#v of type %T to int", i, i)
 		return 0
 	}
 }
@@ -338,7 +338,7 @@ func ToInt64(i interface{}) int64 {
 		if err == nil {
 			return v
 		}
-		fmt.Errorf("unable to cast %#v of type %T to int64", i, i)
+		fmt.Printf("unable to cast %#v of type %T to int64", i, i)
 		return 0
 	case json.Number:
 		return ToInt64(string(s))
@@ -355,7 +355,7 @@ func ToInt64(i interface{}) int64 {
 			return int64(intv)
 		}
 
-		fmt.Errorf("unable to cast %#v of type %T to int64", i, i)
+		fmt.Printf("unable to cast %#v of type %T to int64", i, i)
 		return 0
 	}
 }
@@ -364,6 +364,124 @@ func ToInt64(i interface{}) int64 {
 func ToString(i interface{}) string {
 	v, _ := ToStringE(i)
 	return v
+}
+
+// ToFloat32E casts an interface to a float32 type.
+func ToFloat32(i interface{}) float32 {
+	i = indirect(i)
+
+	intv, ok := toInt(i)
+	if ok {
+		return float32(intv)
+	}
+
+	switch s := i.(type) {
+	case float64:
+		return float32(s)
+	case float32:
+		return s
+	case int64:
+		return float32(s)
+	case int32:
+		return float32(s)
+	case int16:
+		return float32(s)
+	case int8:
+		return float32(s)
+	case uint:
+		return float32(s)
+	case uint64:
+		return float32(s)
+	case uint32:
+		return float32(s)
+	case uint16:
+		return float32(s)
+	case uint8:
+		return float32(s)
+	case string:
+		v, err := strconv.ParseFloat(s, 32)
+		if err == nil {
+			return float32(v)
+		}
+		fmt.Printf("unable to cast %#v of type %T to float32", i, i)
+		return 0
+	case json.Number:
+		v, err := s.Float64()
+		if err == nil {
+			return float32(v)
+		}
+		fmt.Printf("unable to cast %#v of type %T to float32", i, i)
+		return 0
+	case bool:
+		if s {
+			return 1
+		}
+		return 0
+	case nil:
+		return 0
+	default:
+		fmt.Printf("unable to cast %#v of type %T to float32", i, i)
+		return 0
+	}
+}
+
+// ToFloat64E casts an interface to a float64 type.
+func ToFloat64(i interface{}) float64 {
+	i = indirect(i)
+
+	intv, ok := toInt(i)
+	if ok {
+		return float64(intv)
+	}
+
+	switch s := i.(type) {
+	case float64:
+		return s
+	case float32:
+		return float64(s)
+	case int64:
+		return float64(s)
+	case int32:
+		return float64(s)
+	case int16:
+		return float64(s)
+	case int8:
+		return float64(s)
+	case uint:
+		return float64(s)
+	case uint64:
+		return float64(s)
+	case uint32:
+		return float64(s)
+	case uint16:
+		return float64(s)
+	case uint8:
+		return float64(s)
+	case string:
+		v, err := strconv.ParseFloat(s, 64)
+		if err == nil {
+			return v
+		}
+		fmt.Printf("unable to cast %#v of type %T to float64", i, i)
+		return 0
+	case json.Number:
+		v, err := s.Float64()
+		if err == nil {
+			return v
+		}
+		fmt.Printf("unable to cast %#v of type %T to float64", i, i)
+		return 0
+	case bool:
+		if s {
+			return 1
+		}
+		return 0
+	case nil:
+		return 0
+	default:
+		fmt.Printf("unable to cast %#v of type %T to float64", i, i)
+		return 0
+	}
 }
 
 // From html/template/content.go
