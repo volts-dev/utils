@@ -248,6 +248,54 @@ func ToTime(i interface{}) (tim time.Time) {
 	return v
 }
 
+func ToBool(i any) bool {
+	i = indirect(i)
+
+	switch b := i.(type) {
+	case bool:
+		return b
+	case nil:
+		return false
+	case int:
+		return b != 0
+	case int64:
+		return b != 0
+	case int32:
+		return b != 0
+	case int16:
+		return b != 0
+	case int8:
+		return b != 0
+	case uint:
+		return b != 0
+	case uint64:
+		return b != 0
+	case uint32:
+		return b != 0
+	case uint16:
+		return b != 0
+	case uint8:
+		return b != 0
+	case float64:
+		return b != 0
+	case float32:
+		return b != 0
+	case time.Duration:
+		return b != 0
+	case string:
+		v, err := strconv.ParseBool(i.(string))
+		if err != nil {
+			return false
+		}
+		return v
+	case json.Number:
+		v := ToInt64(b)
+		return v != 0 //, fmt.Errorf("unable to cast %#v of type %T to bool", i, i)
+	default:
+		return false //, fmt.Errorf("unable to cast %#v of type %T to bool", i, i)
+	}
+}
+
 // ToIntE casts an interface to an int type.
 func ToInt(i interface{}) int {
 	i = indirect(i)
