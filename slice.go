@@ -4,6 +4,19 @@ import (
 	"strings"
 )
 
+func SliceDelete[T comparable](a []T, b ...T) []T {
+	result := make([]T, 0)
+	for _, bv := range b {
+		for _, av := range a {
+			if bv != av {
+				result = append(result, av)
+			}
+		}
+	}
+
+	return result
+}
+
 func SliceEqual[T comparable](a []T, b []T) bool {
 	if len(a) != len(b) {
 		return false
@@ -156,7 +169,7 @@ func IntsToStrs(m []int64) (res []string) {
 	res = make([]string, 0)
 
 	for _, val := range m {
-		res = append(res, IntToStr(val))
+		res = append(res, ToString(val))
 	}
 
 	return

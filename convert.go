@@ -98,67 +98,6 @@ func indirectToStringerOrError(a interface{}) interface{} {
 	return v.Interface()
 }
 
-// TODO 优化indirectToStringerOrError
-// ToStringE casts an interface to a string type.
-func ToStringE(i interface{}) (string, error) {
-
-	switch s := i.(type) {
-	case string:
-		return s, nil
-	case bool:
-		return strconv.FormatBool(s), nil
-	case float64:
-		return strconv.FormatFloat(s, 'f', -1, 64), nil
-	case float32:
-		return strconv.FormatFloat(float64(s), 'f', -1, 32), nil
-	case int:
-		return strconv.Itoa(s), nil
-	case int64:
-		return strconv.FormatInt(s, 10), nil
-	case int32:
-		return strconv.Itoa(int(s)), nil
-	case int16:
-		return strconv.FormatInt(int64(s), 10), nil
-	case int8:
-		return strconv.FormatInt(int64(s), 10), nil
-	case uint:
-		return strconv.FormatUint(uint64(s), 10), nil
-	case uint64:
-		return strconv.FormatUint(uint64(s), 10), nil
-	case uint32:
-		return strconv.FormatUint(uint64(s), 10), nil
-	case uint16:
-		return strconv.FormatUint(uint64(s), 10), nil
-	case uint8:
-		return strconv.FormatUint(uint64(s), 10), nil
-	case json.Number:
-		return s.String(), nil
-	case []byte:
-		return string(s), nil
-	case template.HTML:
-		return string(s), nil
-	case template.URL:
-		return string(s), nil
-	case template.JS:
-		return string(s), nil
-	case template.CSS:
-		return string(s), nil
-	case template.HTMLAttr:
-		return string(s), nil
-	case nil:
-		return "", nil
-	}
-
-	i = indirectToStringerOrError(i)
-	switch s := i.(type) {
-	case fmt.Stringer:
-		return s.String(), nil
-	case error:
-		return s.Error(), nil
-	default:
-		return "", fmt.Errorf("unable to cast %#v of type %T to string", i, i)
-	}
-}
 func trimZeroDecimal(s string) string {
 	var foundZero bool
 	for i := len(s); i > 0; i-- {
@@ -296,115 +235,127 @@ func ToBool(i any) bool {
 	}
 }
 
-// ToIntE casts an interface to an int type.
 func ToInt(i interface{}) int {
+	v, _ := ToIntE(i)
+	return v
+}
+
+// ToIntE casts an interface to an int type.
+func ToIntE(i interface{}) (int, error) {
 	i = indirect(i)
 
 	switch v := i.(type) {
 	case int:
-		return v
+		return v, nil
 	case int64:
-		return int(v)
+		return int(v), nil
 	case int32:
-		return int(v)
+		return int(v), nil
 	case int16:
-		return int(v)
+		return int(v), nil
 	case int8:
-		return int(v)
+		return int(v), nil
 	case uint:
-		return int(v)
+		return int(v), nil
 	case uint64:
-		return int(v)
+		return int(v), nil
 	case uint32:
-		return int(v)
+		return int(v), nil
 	case uint16:
-		return int(v)
+		return int(v), nil
 	case uint8:
-		return int(v)
+		return int(v), nil
 	case float64:
-		return int(v)
+		return int(v), nil
 	case float32:
-		return int(v)
+		return int(v), nil
 	case string:
-		s, err := strconv.ParseInt(trimZeroDecimal(v), 0, 0)
-		if err == nil {
-			return int(s)
+		if v != "" {
+			s, err := strconv.ParseInt(trimZeroDecimal(v), 0, 0)
+			if err == nil {
+				return int(s), nil
+			}
 		}
-		fmt.Printf("unable to cast %#v of type %T to int64", i, i)
-		return 0
+
+		return 0, fmt.Errorf("unable to cast %#v of type %T to int", i, i)
 	case json.Number:
-		return ToInt(string(v))
+		return ToIntE(string(v))
 	case bool:
 		if v {
-			return 1
+			return 1, nil
 		}
-		return 0
+		return 0, nil
 	case nil:
-		return 0
+		return 0, nil
 	default:
 		intv, ok := toInt(i)
 		if ok {
-			return intv
+			return intv, nil
 		}
 
-		fmt.Printf("unable to cast %#v of type %T to int", i, i)
-		return 0
+		return 0, fmt.Errorf("unable to cast %#v of type %T to int", i, i)
 	}
 }
 
-// ToInt64E casts an interface to an int64 type.
 func ToInt64(i interface{}) int64 {
+	v, _ := ToInt64E(i)
+	return v
+}
+
+// ToInt64E casts an interface to an int64 type.
+func ToInt64E(i interface{}) (int64, error) {
 	i = indirect(i)
 
-	switch s := i.(type) {
+	switch v := i.(type) {
 	case int:
-		return int64(s)
+		return int64(v), nil
 	case int64:
-		return s
+		return v, nil
 	case int32:
-		return int64(s)
+		return int64(v), nil
 	case int16:
-		return int64(s)
+		return int64(v), nil
 	case int8:
-		return int64(s)
+		return int64(v), nil
 	case uint:
-		return int64(s)
+		return int64(v), nil
 	case uint64:
-		return int64(s)
+		return int64(v), nil
 	case uint32:
-		return int64(s)
+		return int64(v), nil
 	case uint16:
-		return int64(s)
+		return int64(v), nil
 	case uint8:
-		return int64(s)
+		return int64(v), nil
 	case float64:
-		return int64(s)
+		return int64(v), nil
 	case float32:
-		return int64(s)
+		return int64(v), nil
 	case string:
-		v, err := strconv.ParseInt(trimZeroDecimal(s), 0, 0)
-		if err == nil {
-			return v
+		if v != "" {
+			v, err := strconv.ParseInt(trimZeroDecimal(v), 0, 0)
+			if err == nil {
+				return v, nil
+			}
 		}
-		fmt.Printf("unable to cast %#v of type %T to int64", i, i)
-		return 0
+
+		return 0, fmt.Errorf("unable to cast %#v of type %T to int64", i, i)
 	case json.Number:
-		return ToInt64(string(s))
+		return ToInt64E(string(v))
 	case bool:
-		if s {
-			return 1
+		if v {
+			return 1, nil
 		}
-		return 0
+		return 0, nil
 	case nil:
-		return 0
+		return 0, nil
 	default:
 		intv, ok := toInt(i)
 		if ok {
-			return int64(intv)
+			return int64(intv), nil
 		}
 
-		fmt.Printf("unable to cast %#v of type %T to int64", i, i)
-		return 0
+		return 0, fmt.Errorf("unable to cast %#v of type %T to int64", i, i)
 	}
 }
 
@@ -412,6 +363,68 @@ func ToInt64(i interface{}) int64 {
 func ToString(i interface{}) string {
 	v, _ := ToStringE(i)
 	return v
+}
+
+// TODO 优化indirectToStringerOrError
+// ToStringE casts an interface to a string type.
+func ToStringE(i interface{}) (string, error) {
+
+	switch s := i.(type) {
+	case string:
+		return s, nil
+	case bool:
+		return strconv.FormatBool(s), nil
+	case float64:
+		return strconv.FormatFloat(s, 'f', -1, 64), nil
+	case float32:
+		return strconv.FormatFloat(float64(s), 'f', -1, 32), nil
+	case int:
+		return strconv.Itoa(s), nil
+	case int64:
+		return strconv.FormatInt(s, 10), nil
+	case int32:
+		return strconv.Itoa(int(s)), nil
+	case int16:
+		return strconv.FormatInt(int64(s), 10), nil
+	case int8:
+		return strconv.FormatInt(int64(s), 10), nil
+	case uint:
+		return strconv.FormatUint(uint64(s), 10), nil
+	case uint64:
+		return strconv.FormatUint(uint64(s), 10), nil
+	case uint32:
+		return strconv.FormatUint(uint64(s), 10), nil
+	case uint16:
+		return strconv.FormatUint(uint64(s), 10), nil
+	case uint8:
+		return strconv.FormatUint(uint64(s), 10), nil
+	case json.Number:
+		return s.String(), nil
+	case []byte:
+		return string(s), nil
+	case template.HTML:
+		return string(s), nil
+	case template.URL:
+		return string(s), nil
+	case template.JS:
+		return string(s), nil
+	case template.CSS:
+		return string(s), nil
+	case template.HTMLAttr:
+		return string(s), nil
+	case nil:
+		return "", nil
+	}
+
+	i = indirectToStringerOrError(i)
+	switch s := i.(type) {
+	case fmt.Stringer:
+		return s.String(), nil
+	case error:
+		return s.Error(), nil
+	default:
+		return "", fmt.Errorf("unable to cast %#v of type %T to string", i, i)
+	}
 }
 
 // ToFloat32E casts an interface to a float32 type.
@@ -561,11 +574,11 @@ func JsonBodyAsMap(body []byte) (m map[string]interface{}, err error) {
 	return
 }
 
-func BoolToStr(b bool) (str string) {
+func ___BoolToStr(b bool) (str string) {
 	return strconv.FormatBool(b)
 }
 
-func IntToStr(i interface{}) string {
+func ___IntToStr(i interface{}) string {
 	switch i.(type) {
 	case int, int8, int16, int32, int64:
 		return fmt.Sprintf("%d", i)
@@ -586,11 +599,11 @@ func Int64ToBytes(i int64) []byte {
 	return buf
 }*/
 
-func FloatToStr(f float64) string {
+func ___FloatToStr(f float64) string {
 	return strconv.FormatFloat(f, 'f', -1, 64)
 }
 
-func StrToFloat(str string) float64 {
+func ___StrToFloat(str string) float64 {
 	f, err := strconv.ParseFloat(str, 64)
 	if err != nil {
 		//fmt.Errorf(err.Error())
