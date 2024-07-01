@@ -7,18 +7,9 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
-	"unicode"
 	"unicode/utf8"
 	"unsafe"
 )
-
-func IsNumeric(v string) (int64, error) {
-	return strconv.ParseInt(v, 10, 64)
-}
-
-func IsStartUpper(s string) bool {
-	return unicode.IsUpper([]rune(s)[0])
-}
 
 func StringToSliceByte(s string) []byte {
 	x := (*[2]uintptr)(unsafe.Pointer(&s))
@@ -26,44 +17,8 @@ func StringToSliceByte(s string) []byte {
 	return *(*[]byte)(unsafe.Pointer(&h))
 }
 
-func StrToInt64(s string) int64 {
-	i, err := strconv.ParseInt(s, 10, 0)
-	if err != nil {
-		fmt.Printf("Unsupported type StrToInt(%s) %s", s, err.Error())
-
-	}
-	return i
-}
-
-func StrToInt(s string) int {
-	i, err := strconv.Atoi(s)
-	if err != nil {
-		fmt.Printf("Unsupported type StrToInt(%s) %s", s, err.Error())
-	}
-	return i
-}
-
-func StrToBool(str string) (b bool) {
-	b, err := strconv.ParseBool(str)
-	if err != nil {
-		fmt.Printf("faild to convert StrToBool(%s) with error : %s", str, err.Error())
-		return false
-	}
-	return b //	fmt.Printf("%T, %v\n", s, s)
-}
-
 func Md5(AStr string) string {
 	return fmt.Sprintf("%x", md5.Sum([]byte(AStr)))
-}
-
-// 替代InStrings
-func IdxOfStrings(target string, strs ...string) int {
-	for idx, str := range strs {
-		if target == str {
-			return idx
-		}
-	}
-	return -1
 }
 
 func Trim(s string) string {

@@ -156,10 +156,10 @@ func toTimeInDefaultLocation(i interface{}, location *time.Location) (tim time.T
 	case string:
 		return stringToDateInDefaultLocation(v, location)
 	case json.Number:
-		s := ToInt64(v)
-		//if err1 != nil {
-		//	return time.Time{}, fmt.Errorf("unable to cast %#v of type %T to Time", i, i)
-		//}
+		s, err := ToInt64E(v)
+		if err != nil {
+			return time.Time{}, err
+		}
 		return time.Unix(s, 0), nil
 	case int:
 		return time.Unix(int64(v), 0), nil
@@ -179,11 +179,12 @@ func toTimeInDefaultLocation(i interface{}, location *time.Location) (tim time.T
 }
 
 // ToTimeE casts an interface to a time.Time type.
+func ToTimeE(i interface{}) (time.Time, error) {
+	return toTimeInDefaultLocation(i, time.UTC)
+}
+
 func ToTime(i interface{}) (tim time.Time) {
-	v, err := toTimeInDefaultLocation(i, time.UTC)
-	if err != nil {
-		fmt.Println(err)
-	}
+	v, _ := ToTimeE(i)
 	return v
 }
 
@@ -574,43 +575,9 @@ func JsonBodyAsMap(body []byte) (m map[string]interface{}, err error) {
 	return
 }
 
-func ___BoolToStr(b bool) (str string) {
-	return strconv.FormatBool(b)
-}
-
-func ___IntToStr(i interface{}) string {
-	switch i.(type) {
-	case int, int8, int16, int32, int64:
-		return fmt.Sprintf("%d", i)
-	default:
-		return "0"
-	}
-}
-
 // int,int64 to bytes
 func Int64ToBytes(val interface{}) (res []byte) {
 	return big.NewInt(val.(int64)).Bytes()
-}
-
-/*
-func Int64ToBytes(i int64) []byte {
-	var buf = make([]byte, 8)
-	binary.BigEndian.PutUint64(buf, uint64(i))
-	return buf
-}*/
-
-func ___FloatToStr(f float64) string {
-	return strconv.FormatFloat(f, 'f', -1, 64)
-}
-
-func ___StrToFloat(str string) float64 {
-	f, err := strconv.ParseFloat(str, 64)
-	if err != nil {
-		//fmt.Errorf(err.Error())
-		fmt.Printf("faild to convert StrToFloat(%s) with error : %s", str, err.Error())
-	}
-
-	return f
 }
 
 // HexToBytes converts a hex string representation of bytes to a byte representation

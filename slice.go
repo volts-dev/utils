@@ -4,6 +4,7 @@ import (
 	"strings"
 )
 
+// delete B values from A
 func SliceDelete[T comparable](a []T, b ...T) []T {
 	result := make([]T, 0)
 	for _, bv := range b {
@@ -43,12 +44,11 @@ func Insert(slice []interface{}, index int, value interface{}) {
 	//return slice
 }
 
-// TODO 改为范类型
-func SlicInsert(slice []interface{}, index int, values ...interface{}) []interface{} {
+func SlicInsert[T comparable](slice []T, index int, values ...T) []T {
 	return append(slice[:index], append(values, slice[index:]...)...)
 }
 
-func SlicRemove(slice []interface{}, index int) []interface{} {
+func SlicRemoveByIndex(slice []interface{}, index int) []interface{} {
 	return append(slice[:index], slice[index+1:]...)
 }
 
@@ -80,29 +80,11 @@ func StringsIntersect(a []string, b []string) (res []string) {
 	return
 }
 
-// check if string in other strings
+// check if in other slice
 // return the index of the list otherwise -1 no match found
-func InStrings(target string, other ...string) int {
-	for idx, str := range other {
+func IndexOf[T comparable](target T, strs ...T) int {
+	for idx, str := range strs {
 		if target == str {
-			return idx
-		}
-	}
-	return -1
-}
-
-func In[T comparable](target T, other ...T) int {
-	for idx, str := range other {
-		if target == str {
-			return idx
-		}
-	}
-	return -1
-}
-
-func InInts(target int, other ...int) int {
-	for idx, i := range other {
-		if target == i {
 			return idx
 		}
 	}
@@ -136,7 +118,7 @@ func ToAnySlice[T int | int64 | float32 | float64 | string](v ...T) []any {
 	return slice
 }
 
-func Strs2Itfs(m []string) []interface{} {
+func ___Strs2Itfs(m []string) []interface{} {
 	res_slice := make([]interface{}, len(m))
 
 	for i, val := range m {
@@ -145,7 +127,7 @@ func Strs2Itfs(m []string) []interface{} {
 	return res_slice
 }
 
-func IntsToItfs(m []int64) []interface{} {
+func ___IntsToItfs(m []int64) []interface{} {
 	res_slice := make([]interface{}, len(m))
 
 	for i, val := range m {
@@ -159,7 +141,7 @@ func Itfs2Strs(m []interface{}) (res []string) {
 	res = make([]string, 0)
 
 	for _, val := range m {
-		res = append(res, Itf2Str(val))
+		res = append(res, ToString(val))
 	}
 
 	return

@@ -141,10 +141,10 @@ func GetStrMapField(lst interface{}, field string) (result []string) {
 	return
 }
 
-func MergeMaps(to map[string]interface{}, from ...map[string]interface{}) map[string]interface{} {
+func MergeMaps[T comparable, Y comparable](to map[T]Y, from ...map[T]Y) map[T]Y {
 	if from != nil { //如果有res
 		if to == nil { //且没有des
-			to = make(map[string]interface{})
+			to = make(map[T]Y)
 		}
 
 		//两者都有合并

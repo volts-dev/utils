@@ -29,18 +29,29 @@ type (
 
 	// Urlset 标签
 	TUrlset struct {
-		XMLName xml.Name `xml:"urlset"`
-		Xmlns   string   `xml:"xmlns,attr"`
-		Url     []TUrl   `xml:"url"`
+		XMLName    xml.Name `xml:"urlset"`
+		Xmlns      string   `xml:"xmlns,attr"`
+		Xmlnsxhtml string   `xml:"xmlns:xhtml,attr"`
+		Url        []TUrl   `xml:"url"`
 	}
 
 	// Url 标签
 	TUrl struct {
-		XMLName    xml.Name `xml:"url"`
-		Loc        string   `xml:"loc"`
-		Lastmod    string   `xml:"lastmod"`
-		Changefreq string   `xml:"changefreq"`
-		Priority   string   `xml:"priority"`
+		XMLName xml.Name `xml:"url"`
+		Loc     string   `xml:"loc"`
+		//Lastmod    string   `xml:"lastmod"`
+		//Changefreq string   `xml:"changefreq"`
+		//Priority   string   `xml:"priority"`
+		Xhtml []Xhtml `xml:"xhtml"`
+	}
+
+	// supports extensions - xhtml:link localizations
+	// https://developers.google.com/search/docs/specialty/international/localized-versions?hl=zh-cn#sitemap
+	Xhtml struct {
+		XMLName  xml.Name `xml:"xhtml:link"`
+		Href     string   `xml:"href,attr"`     // 该标签的xmlns属性
+		Hreflang string   `xml:"hreflang,attr"` // 该标签的xmlns属性
+		Rel      string   `xml:"rel,attr"`      // 该标签的xmlns属性
 	}
 )
 
