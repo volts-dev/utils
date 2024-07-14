@@ -1,15 +1,25 @@
 package utils
 
-func Min[T int | int32 | int64 | float32 | float64](a, b T) T {
-	if a < b {
-		return a
-	}
-	return b
-}
+import (
+	"cmp"
+)
 
-func Max[T int | int32 | int64 | float32 | float64](a, b T) T {
-	if a > b {
-		return a
+func Min[T cmp.Ordered](args ...T) T {
+	min := args[0]
+	for _, x := range args {
+		if min > x {
+			min = x
+		}
 	}
-	return b
+	return min
+
+}
+func Max[T cmp.Ordered](args ...T) T {
+	max := args[0]
+	for _, x := range args {
+		if max < x {
+			max = x
+		}
+	}
+	return max
 }
