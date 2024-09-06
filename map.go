@@ -104,13 +104,6 @@ func (self *TMap) Count() int {
 	return int(atomic.LoadInt32(&self.len))
 }
 
-/*
-func InMap(key string) bool {
-	if str, has := item[field]; has {
-		result = append(result, str.(string))
-	}
-}
-*/
 // 获取[]Map的指定Field
 func GetStrMapField(lst interface{}, field string) (result []string) {
 	if lst == nil {
