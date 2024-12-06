@@ -2,7 +2,29 @@ package utils
 
 import (
 	"strings"
+	"unsafe"
 )
+
+// Ints returns a unique subset of the int slice provided.
+func Unique[T comparable](input []T) []T {
+	u := make([]T, 0, len(input))
+	m := make(map[T]bool)
+
+	for _, val := range input {
+		if _, ok := m[val]; !ok {
+			m[val] = true
+			u = append(u, val)
+		}
+	}
+
+	return u
+}
+
+// SliceByteToString converts []byte to string without copy.
+// DO NOT USE unless you know what you're doing.
+func SliceByteToString(b []byte) string {
+	return *(*string)(unsafe.Pointer(&b))
+}
 
 // delete B values from A
 func SliceDelete[T comparable](a []T, b ...T) []T {
@@ -118,23 +140,13 @@ func ToAnySlice[T int | int64 | float32 | float64 | string](v ...T) []any {
 	return slice
 }
 
-func ___Strs2Itfs(m []string) []interface{} {
-	res_slice := make([]interface{}, len(m))
-
-	for i, val := range m {
-		res_slice[i] = val
-	}
-	return res_slice
-}
-
-func ___IntsToItfs(m []int64) []interface{} {
-	res_slice := make([]interface{}, len(m))
-
-	for i, val := range m {
-		res_slice[i] = val
+func ToStringSlice[T comparable](v ...T) []string {
+	slice := make([]string, len(v))
+	for i, val := range v {
+		slice[i] = ToString(val)
 	}
 
-	return res_slice
+	return slice
 }
 
 func Itfs2Strs(m []interface{}) (res []string) {

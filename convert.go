@@ -11,7 +11,6 @@ import (
 	"reflect"
 	"strconv"
 	"time"
-	"unsafe"
 )
 
 type timeFormatType int
@@ -563,10 +562,6 @@ func indirect(a interface{}) interface{} {
 		v = v.Elem()
 	}
 	return v.Interface()
-}
-
-func SliceByteToString(b []byte) string {
-	return *(*string)(unsafe.Pointer(&b))
 }
 
 func JsonBodyAsMap(body []byte) (m map[string]interface{}, err error) {
