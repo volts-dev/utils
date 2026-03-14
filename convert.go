@@ -368,7 +368,6 @@ func ToString(i interface{}) string {
 // TODO 优化indirectToStringerOrError
 // ToStringE casts an interface to a string type.
 func ToStringE(i interface{}) (string, error) {
-
 	switch s := i.(type) {
 	case string:
 		return s, nil
