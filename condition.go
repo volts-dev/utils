@@ -168,8 +168,37 @@ func IsBlank(v interface{}) bool {
 	return v == blank
 }
 
-func IsNumeric(v string) (int64, error) {
-	return strconv.ParseInt(v, 10, 64)
+// IsNumber 判断字符串是否是合法的数字（支持正负号和小数点）
+func IsNumeric(s string) bool {
+	if len(s) == 0 {
+		return false
+	}
+
+	start := 0
+	// 处理正负号
+	if s[0] == '-' || s[0] == '+' {
+		if len(s) == 1 { // 只有 "+" 或 "-" 不是数字
+			return false
+		}
+		start = 1
+	}
+	hasDot := false
+	for i := start; i < len(s); i++ {
+		if s[i] == '.' {
+			if hasDot { // 如果已经有过小数点，则不合法
+				return false
+			}
+			hasDot = true
+			continue
+		}
+
+		// 必须是 0-9 之间的数字
+		if s[i] < '0' || s[i] > '9' {
+			return false
+		}
+	}
+
+	return true
 }
 
 func IsStartUpper(s string) bool {
