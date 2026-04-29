@@ -168,8 +168,12 @@ func IsBlank(v interface{}) bool {
 	return v == blank
 }
 
+func IsNumeric(v string) (int64, error) {
+	return strconv.ParseInt(v, 10, 64)
+}
+
 // IsNumber 判断字符串是否是合法的数字（支持正负号和小数点）
-func IsNumeric(s string) bool {
+func IsNumber(s string) bool {
 	if len(s) == 0 {
 		return false
 	}
