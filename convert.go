@@ -63,18 +63,26 @@ var (
 	}
 )
 
-// toInt returns the int value of v if v or v's underlying type
-// is an int.
-// Note that this will return false for int64 etc. types.
+// toInt 按底层 Kind 取整数值，用于兜住命名数值类型（time.Weekday、time.Month、
+// ORM 的自定义列类型…）——它们的精确类型和底层类型不相等，类型 switch 一个
+// case 都匹配不上。
+//
+// 只在各 ToXxxE 的 default 分支被调用：原生类型早被前面的 case 接住，不绕反射。
+// 整数不经 float64 中转，否则超过 2^53 的雪花 id 会在这里被舍入。
 func toInt(v interface{}) (int, bool) {
-	switch v := v.(type) {
-	case time.Weekday:
-		return int(v), true
-	case time.Month:
-		return int(v), true
-	default:
+	rv := reflect.ValueOf(v)
+	if !rv.IsValid() {
 		return 0, false
 	}
+	switch rv.Kind() {
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		return int(rv.Int()), true
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+		return int(rv.Uint()), true
+	case reflect.Float32, reflect.Float64:
+		return int(rv.Float()), true
+	}
+	return 0, false
 }
 
 // From html/template/content.go
@@ -426,122 +434,127 @@ func ToStringE(i interface{}) (string, error) {
 	}
 }
 
-// ToFloat32E casts an interface to a float32 type.
+// ToFloat32 casts an interface to a float32 type.
+//
+// 转换不了返回 0。0 在金额/数量上下文里是完全合法的值，调用方无法把它和
+// "这一项真的是零" 区分开——需要区分请用 ToFloat32E。
 func ToFloat32(i interface{}) float32 {
-	i = indirect(i)
-
-	intv, ok := toInt(i)
-	if ok {
-		return float32(intv)
+	v, err := ToFloat32E(i)
+	if err != nil {
+		fmt.Println(err)
 	}
+	return v
+}
 
-	switch s := i.(type) {
-	case float64:
-		return float32(s)
-	case float32:
-		return s
-	case int64:
-		return float32(s)
-	case int32:
-		return float32(s)
-	case int16:
-		return float32(s)
-	case int8:
-		return float32(s)
-	case uint:
-		return float32(s)
-	case uint64:
-		return float32(s)
-	case uint32:
-		return float32(s)
-	case uint16:
-		return float32(s)
-	case uint8:
-		return float32(s)
-	case string:
+// ToFloat32E casts an interface to a float32 type.
+func ToFloat32E(i interface{}) (float32, error) {
+	if s, ok := indirect(i).(string); ok {
+		// 单独走 32 位解析：先 ParseFloat(s, 64) 再截成 float32 会二次舍入。
 		v, err := strconv.ParseFloat(s, 32)
-		if err == nil {
-			return float32(v)
+		if err != nil {
+			return 0, fmt.Errorf("unable to cast %#v of type %T to float32", i, i)
 		}
-		fmt.Printf("unable to cast %#v of type %T to float32", i, i)
-		return 0
-	case json.Number:
-		v, err := s.Float64()
-		if err == nil {
-			return float32(v)
-		}
-		fmt.Printf("unable to cast %#v of type %T to float32", i, i)
-		return 0
-	case bool:
-		if s {
-			return 1
-		}
-		return 0
-	case nil:
-		return 0
-	default:
-		fmt.Printf("unable to cast %#v of type %T to float32", i, i)
-		return 0
+		return float32(v), nil
 	}
+
+	v, err := ToFloat64E(i)
+	if err != nil {
+		return 0, fmt.Errorf("unable to cast %#v of type %T to float32", i, i)
+	}
+	return float32(v), nil
+}
+
+// ToFloat64 casts an interface to a float64 type.
+//
+// 失败语义同 ToFloat32：返回 0 并打印一行，要区分失败与真零请用 ToFloat64E。
+func ToFloat64(i interface{}) float64 {
+	v, err := ToFloat64E(i)
+	if err != nil {
+		fmt.Println(err)
+	}
+	return v
 }
 
 // ToFloat64E casts an interface to a float64 type.
-func ToFloat64(i interface{}) float64 {
+//
+// 类型 switch 认的是**精确类型**，所以每一种原生整数都必须自己列一行：漏掉
+// `case int:` 时，Go 里最常见的整数形态（字面量、len()、聚合计数）会一路掉进
+// default，打一行 "unable to cast 0 of type int to float64" 然后返回 0——报表上
+// 的数字就这么被吞成 0，而 0 是合法金额，纸面上看不出来。
+func ToFloat64E(i interface{}) (float64, error) {
 	i = indirect(i)
-
-	intv, ok := toInt(i)
-	if ok {
-		return float64(intv)
-	}
 
 	switch s := i.(type) {
 	case float64:
-		return s
+		return s, nil
 	case float32:
-		return float64(s)
+		return float64(s), nil
+	case int:
+		return float64(s), nil
 	case int64:
-		return float64(s)
+		return float64(s), nil
 	case int32:
-		return float64(s)
+		return float64(s), nil
 	case int16:
-		return float64(s)
+		return float64(s), nil
 	case int8:
-		return float64(s)
+		return float64(s), nil
 	case uint:
-		return float64(s)
+		return float64(s), nil
 	case uint64:
-		return float64(s)
+		return float64(s), nil
 	case uint32:
-		return float64(s)
+		return float64(s), nil
 	case uint16:
-		return float64(s)
+		return float64(s), nil
 	case uint8:
-		return float64(s)
+		return float64(s), nil
 	case string:
 		v, err := strconv.ParseFloat(s, 64)
-		if err == nil {
-			return v
+		if err != nil {
+			return 0, fmt.Errorf("unable to cast %#v of type %T to float64", i, i)
 		}
-		fmt.Printf("unable to cast %#v of type %T to float64", i, i)
-		return 0
+		return v, nil
 	case json.Number:
 		v, err := s.Float64()
-		if err == nil {
-			return v
+		if err != nil {
+			return 0, fmt.Errorf("unable to cast %#v of type %T to float64", i, i)
 		}
-		fmt.Printf("unable to cast %#v of type %T to float64", i, i)
-		return 0
+		return v, nil
 	case bool:
 		if s {
-			return 1
+			return 1, nil
 		}
-		return 0
+		return 0, nil
 	case nil:
-		return 0
-	default:
-		fmt.Printf("unable to cast %#v of type %T to float64", i, i)
-		return 0
+		return 0, nil
 	}
+
+	// 命名数值类型（time.Duration、time.Month、ORM 的自定义列类型…）的精确类型
+	// 不等于底层类型，上面一个 case 都匹配不上。按 Kind 兜一层，否则它们同样
+	// 静默变 0。
+	if v, ok := numericByKind(i); ok {
+		return v, nil
+	}
+
+	return 0, fmt.Errorf("unable to cast %#v of type %T to float64", i, i)
+}
+
+// numericByKind 用反射按底层 Kind 取数值，用于兜住命名数值类型。
+func numericByKind(i interface{}) (float64, bool) {
+	v := reflect.ValueOf(i)
+	if !v.IsValid() {
+		return 0, false
+	}
+	switch v.Kind() {
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		return float64(v.Int()), true
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+		return float64(v.Uint()), true
+	case reflect.Float32, reflect.Float64:
+		return v.Float(), true
+	}
+	return 0, false
 }
 
 // From html/template/content.go
