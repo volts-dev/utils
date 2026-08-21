@@ -156,12 +156,29 @@ func IsBlank(v interface{}) bool {
 			return true
 		}
 
-		// for array
-		if reflect.ValueOf(v).Len() == 0 {
-			return true
+		// ★ 这里**必须先看 Kind**。原来是无条件 reflect.ValueOf(v).Len()，而 Len()
+		// 只对 Array/Slice/Map/String/Chan 合法，别的一律 panic：
+		//
+		//	reflect: call of reflect.Value.Len on int64 Value
+		//
+		// 掉进 default 的最常见一类，正是**底层为 int64 的具名类型**（vectors 的
+		// json.ID 就是）——上面的 `case int64` 只匹配裸 int64，具名类型匹配不到。
+		// 于是「建新租户」整条路必崩：sys_tenant 的建表值里有一个 json.ID 字段，
+		// orm 写入前调 IsBlank 判空，当场 panic，而 /api/setup 返回的是
+		// `{"done":true,"progress":0,"error":"handler panic recovered"}`
+		// ——带着 done:true，只 grep 成功标志的脚本会误判成"卡住了"。
+		// （volts-dev/utils 是全仓共用的独立仓，这一处影响面很大，所以只补判断、
+		//  不改任何已有分支的语义。）
+		rv := reflect.ValueOf(v)
+		switch rv.Kind() {
+		case reflect.Array, reflect.Slice, reflect.Map, reflect.String, reflect.Chan:
+			return rv.Len() == 0
+		case reflect.Ptr, reflect.Interface, reflect.Func, reflect.UnsafePointer:
+			return rv.IsNil()
+		default:
+			// 具名的数值/布尔类型与结构体走这里：零值即空。
+			return rv.IsZero()
 		}
-
-		return false
 		//fmt.Println("the type %s can not support", v)
 	}
 
