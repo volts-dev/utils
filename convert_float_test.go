@@ -37,6 +37,8 @@ func TestToFloat64_NativeTypes(t *testing.T) {
 		{float64(2.25), 2.25},
 		{"3.5", 3.5},
 		{json.Number("4.75"), 4.75},
+		{[]byte("73"), 73}, // Postgres numeric（SUM(bigint)）经驱动回来是文本字节
+		{[]byte(" 1.5 "), 1.5},
 		{true, 1},
 		{false, 0},
 		{nil, 0},

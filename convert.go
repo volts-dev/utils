@@ -10,6 +10,7 @@ import (
 	"math/big"
 	"reflect"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -517,6 +518,14 @@ func ToFloat64E(i interface{}) (float64, error) {
 		return v, nil
 	case json.Number:
 		v, err := s.Float64()
+		if err != nil {
+			return 0, fmt.Errorf("unable to cast %#v of type %T to float64", i, i)
+		}
+		return v, nil
+	case []byte:
+		// Postgres 的 numeric（SUM(bigint)、AVG(int)…）经驱动回来是文本字节。漏了这一支，电子表格
+		// 看板上所有整数列的求和都是 0（任务数「nbr:sum」），而浮点列的 SUM 回 float64 一切正常。
+		v, err := strconv.ParseFloat(strings.TrimSpace(string(s)), 64)
 		if err != nil {
 			return 0, fmt.Errorf("unable to cast %#v of type %T to float64", i, i)
 		}
